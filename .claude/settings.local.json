@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --no-src-dir --import-alias \"@/*\" --yes)",
+      "Read(//c/Users/srini/**)",
+      "Bash(npx create-next-app@latest daily-planner --typescript --tailwind --eslint --app --no-src-dir --import-alias \"@/*\" --yes)",
+      "Bash(cp -r /c/Users/srini/daily-planner/. /c/Users/srini/DailyPlannerApp/)",
+      "Bash(rm -rf /c/Users/srini/daily-planner)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'Initial commit: Family day planner app *)"
+    ]
+  }
+}
