@@ -1,6 +1,5 @@
 'use client'
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { DndContext, DragEndEvent, DragStartEvent, useDraggable, useDroppable, DragOverlay } from '@dnd-kit/core'
 import { useKidTracker } from '@/hooks/useSupabase'
 import type { Activity } from '@/types/database'
 import confetti from 'canvas-confetti'
@@ -8,111 +7,82 @@ import confetti from 'canvas-confetti'
 const REACTIONS = ['🎉', '🚀', '⭐', '🔥', '💥', '🌟', '🏆', '👊', '💪', '🎯']
 const FUN_MESSAGES = ['AWESOME!!', 'CRUSHING IT!', 'SUPERSTAR!', 'BOOM!', 'LEGENDARY!', 'EPIC WIN!', 'YOU ROCK!', 'NAILED IT!', 'UNSTOPPABLE!', 'CHAMPION!']
 
+// A different bright color per card
+const CARD_COLORS = [
+  'from-red-400 to-orange-400',
+  'from-orange-400 to-yellow-400',
+  'from-yellow-400 to-lime-400',
+  'from-green-400 to-teal-400',
+  'from-teal-400 to-cyan-400',
+  'from-blue-400 to-indigo-400',
+  'from-indigo-400 to-violet-400',
+  'from-violet-400 to-pink-400',
+  'from-pink-400 to-rose-400',
+]
+
 function fireConfetti() {
-  const d = { origin: { y: 0.5 } }
-  confetti({ ...d, particleCount: 50, spread: 26, startVelocity: 55, colors: ['#ff0000', '#ffff00', '#00ff00'] })
-  confetti({ ...d, particleCount: 40, spread: 60, colors: ['#0000ff', '#ff00ff', '#00ffff'] })
-  confetti({ ...d, particleCount: 70, spread: 100, decay: 0.91, scalar: 0.8, colors: ['#ffd700', '#ff6b6b', '#4ecdc4'] })
-  confetti({ ...d, particleCount: 20, spread: 160, startVelocity: 45 })
-}
-
-function PendingCard({ activity, isDraggingThis }: { activity: Activity; isDraggingThis: boolean }) {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: `pending-${activity.id}` })
-  const style = transform
-    ? { transform: `translate3d(${transform.x}px,${transform.y}px,0) rotate(${transform.x * 0.04}deg) scale(1.05)` }
-    : undefined
-  return (
-    <div
-      ref={setNodeRef} style={style} {...listeners} {...attributes}
-      className={`flex items-center gap-4 px-5 py-4 rounded-2xl bg-slate-700/70 border-2 border-slate-600
-        cursor-grab active:cursor-grabbing touch-none select-none
-        hover:border-indigo-400 hover:bg-slate-700 transition-colors
-        ${isDraggingThis ? 'opacity-25' : 'opacity-100'}`}
-    >
-      <span className="text-3xl">{activity.icon}</span>
-      <span className="text-xl font-semibold text-white">{activity.name}</span>
-      <span className="ml-auto text-slate-400 text-sm">drag ↑</span>
-    </div>
-  )
-}
-
-function CompletedCard({ activity, isDraggingThis }: { activity: Activity; isDraggingThis: boolean }) {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: `completed-${activity.id}` })
-  const style = transform
-    ? { transform: `translate3d(${transform.x}px,${transform.y}px,0) rotate(${transform.x * 0.04}deg) scale(1.05)` }
-    : undefined
-  return (
-    <div
-      ref={setNodeRef} style={style} {...listeners} {...attributes}
-      className={`flex items-center gap-4 px-5 py-3 rounded-2xl bg-green-500/10 border border-green-500/30
-        cursor-grab active:cursor-grabbing touch-none select-none
-        hover:border-orange-400/50 hover:bg-orange-500/10 transition-colors
-        ${isDraggingThis ? 'opacity-25' : 'opacity-70'}`}
-    >
-      <span className="text-2xl">{activity.icon}</span>
-      <span className="text-lg text-green-400 line-through flex-1">{activity.name}</span>
-      <span className="text-slate-500 text-xs">drag ↑ to undo</span>
-      <span className="text-lg">✅</span>
-    </div>
-  )
-}
-
-function CompleteZone({ isOver }: { isOver: boolean }) {
-  const { setNodeRef } = useDroppable({ id: 'done-zone' })
-  return (
-    <div ref={setNodeRef}
-      className={`flex items-center justify-center gap-4 rounded-2xl border-4 border-dashed transition-all duration-300 h-[80px]
-        ${isOver ? 'border-green-400 bg-green-400/20 drop-zone-active scale-105' : 'border-slate-600 bg-slate-800/30'}`}
-    >
-      <span className={`text-3xl transition-transform ${isOver ? 'scale-125' : ''}`}>{isOver ? '🎯' : '✅'}</span>
-      <span className={`text-lg font-bold ${isOver ? 'text-green-300' : 'text-slate-500'}`}>
-        {isOver ? 'DROP IT! 🔥' : 'Drag pending tasks here to complete'}
-      </span>
-    </div>
-  )
-}
-
-function UndoZone({ isOver }: { isOver: boolean }) {
-  const { setNodeRef } = useDroppable({ id: 'undo-zone' })
-  return (
-    <div ref={setNodeRef}
-      className={`flex items-center justify-center gap-4 rounded-2xl border-4 border-dashed transition-all duration-300 h-[80px]
-        ${isOver ? 'border-orange-400 bg-orange-400/20 scale-105' : 'border-slate-700 bg-slate-800/20'}`}
-      style={isOver ? { boxShadow: '0 0 40px rgba(251,146,60,0.5)' } : {}}
-    >
-      <span className={`text-3xl transition-transform ${isOver ? 'scale-125' : ''}`}>{isOver ? '↩️' : '🔄'}</span>
-      <span className={`text-lg font-bold ${isOver ? 'text-orange-300' : 'text-slate-600'}`}>
-        {isOver ? 'PUT IT BACK!' : 'Drag completed here to undo'}
-      </span>
-    </div>
-  )
-}
-
-function OverlayCard({ activity, isCompleted }: { activity: Activity; isCompleted: boolean }) {
-  return (
-    <div className={`flex items-center gap-4 px-5 py-4 rounded-2xl border-2 shadow-2xl rotate-3 scale-110
-      ${isCompleted ? 'bg-orange-500 border-orange-300 shadow-orange-500/50' : 'bg-indigo-500 border-indigo-300 shadow-indigo-500/50'}`}
-    >
-      <span className="text-3xl">{activity.icon}</span>
-      <span className="text-xl font-bold text-white">{activity.name}</span>
-      <span className="ml-auto text-2xl animate-bounce">{isCompleted ? '↩️' : '🚀'}</span>
-    </div>
-  )
+  confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 }, colors: ['#ff0000','#ffff00','#00ff00','#0000ff','#ff00ff'] })
+  setTimeout(() => confetti({ particleCount: 50, spread: 120, origin: { y: 0.5 }, startVelocity: 45 }), 150)
 }
 
 function FloatingReaction({ text, emoji }: { text: string; emoji: string }) {
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-50">
-      <div className="bounce-in text-8xl mb-4">{emoji}</div>
-      <div className="bounce-in text-5xl font-black text-yellow-300 drop-shadow-lg" style={{ animationDelay: '0.1s' }}>{text}</div>
+    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-50 bg-white/20 backdrop-blur-sm rounded-3xl">
+      <div className="bounce-in text-8xl mb-3">{emoji}</div>
+      <div className="bounce-in text-4xl font-black text-white drop-shadow-lg text-center px-4" style={{ animationDelay: '0.1s' }}>{text}</div>
     </div>
+  )
+}
+
+function TaskCard({ activity, index, onTap }: { activity: Activity; index: number; onTap: () => void }) {
+  const [pressing, setPressing] = useState(false)
+  const color = CARD_COLORS[index % CARD_COLORS.length]
+
+  return (
+    <button
+      onPointerDown={() => setPressing(true)}
+      onPointerUp={() => { setPressing(false); onTap() }}
+      onPointerLeave={() => setPressing(false)}
+      className={`w-full flex items-center gap-4 px-5 py-5 rounded-2xl bg-gradient-to-r ${color}
+        shadow-lg active:shadow-sm transition-all duration-150 text-left
+        ${pressing ? 'scale-95 brightness-90' : 'scale-100'}`}
+    >
+      <div className="w-14 h-14 rounded-xl bg-white/30 flex items-center justify-center text-3xl flex-shrink-0 shadow-inner">
+        {activity.icon}
+      </div>
+      <span className="text-xl font-bold text-white drop-shadow flex-1">{activity.name}</span>
+      <div className="w-10 h-10 rounded-full bg-white/20 border-2 border-white/50 flex items-center justify-center flex-shrink-0">
+        <span className="text-white/70 text-lg">○</span>
+      </div>
+    </button>
+  )
+}
+
+function CompletedCard({ activity, index, onTap }: { activity: Activity; index: number; onTap: () => void }) {
+  const [pressing, setPressing] = useState(false)
+
+  return (
+    <button
+      onPointerDown={() => setPressing(true)}
+      onPointerUp={() => { setPressing(false); onTap() }}
+      onPointerLeave={() => setPressing(false)}
+      className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl bg-white/60
+        border-2 border-green-300 shadow transition-all duration-150 text-left
+        ${pressing ? 'scale-95' : 'scale-100'}`}
+    >
+      <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center text-2xl flex-shrink-0">
+        {activity.icon}
+      </div>
+      <span className="text-lg font-semibold text-green-700 line-through flex-1">{activity.name}</span>
+      <div className="w-10 h-10 rounded-full bg-green-400 flex items-center justify-center flex-shrink-0 shadow">
+        <span className="text-white text-xl">✓</span>
+      </div>
+    </button>
   )
 }
 
 export default function KidTracker() {
   const { activities, tasks, loading, completedCount, totalCount, percent, completeTask, uncompleteTask } = useKidTracker()
-  const [draggingId, setDraggingId] = useState<string | null>(null)
-  const [overZone, setOverZone] = useState<string | null>(null)
   const [reaction, setReaction] = useState<{ text: string; emoji: string } | null>(null)
   const reactionTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -122,92 +92,82 @@ export default function KidTracker() {
     setReaction({ text, emoji })
     fireConfetti()
     if (reactionTimer.current) clearTimeout(reactionTimer.current)
-    reactionTimer.current = setTimeout(() => setReaction(null), 2000)
+    reactionTimer.current = setTimeout(() => setReaction(null), 1800)
   }, [])
 
   useEffect(() => () => { if (reactionTimer.current) clearTimeout(reactionTimer.current) }, [])
 
-  const handleDragStart = (e: DragStartEvent) => setDraggingId(String(e.active.id))
-  const handleDragEnd = async (e: DragEndEvent) => {
-    const id = String(e.active.id)
-    setDraggingId(null)
-    setOverZone(null)
-    const activityId = id.replace(/^(pending|completed)-/, '')
-    if (e.over?.id === 'done-zone' && id.startsWith('pending-')) {
-      await completeTask(activityId)
-      showReaction()
-    } else if (e.over?.id === 'undo-zone' && id.startsWith('completed-')) {
-      await uncompleteTask(activityId)
-    }
-  }
-
   const pendingActivities = activities.filter((a) => !tasks.find((t) => t.activity_id === a.id)?.completed)
   const completedActivities = activities.filter((a) => tasks.find((t) => t.activity_id === a.id)?.completed)
-  const draggingRaw = draggingId ?? ''
-  const draggingActivity = activities.find((a) => a.id === draggingRaw.replace(/^(pending|completed)-/, ''))
-  const draggingIsCompleted = draggingRaw.startsWith('completed-')
 
-  if (loading) return <div className="flex items-center justify-center h-full"><div className="text-4xl animate-spin">⭐</div></div>
+  const handleComplete = async (activityId: string) => {
+    await completeTask(activityId)
+    showReaction()
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-6xl animate-bounce">⭐</div>
+      </div>
+    )
+  }
 
   return (
-    <DndContext
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      onDragOver={(e) => setOverZone(e.over ? String(e.over.id) : null)}
-    >
-      {/* h-full + flex col: parent must have a definite height */}
-      <div className="flex flex-col h-full gap-3 relative">
-        {reaction && <FloatingReaction text={reaction.text} emoji={reaction.emoji} />}
+    <div className="flex flex-col h-full gap-3 relative">
+      {reaction && <FloatingReaction text={reaction.text} emoji={reaction.emoji} />}
 
-        {/* Progress — fixed */}
-        <div className="flex-shrink-0 flex flex-col gap-1">
-          <div className="flex items-center justify-between">
-            <span className="text-xl font-bold text-white">Today&apos;s Missions</span>
-            <span className="text-xl font-black text-yellow-300">{completedCount}/{totalCount} ⭐</span>
-          </div>
-          <div className="h-5 bg-slate-700 rounded-full overflow-hidden border border-slate-600">
-            <div className="h-full rounded-full transition-all duration-700 ease-out relative overflow-hidden"
+      {/* Progress bar */}
+      <div className="flex-shrink-0 bg-white/50 rounded-2xl px-4 py-3 flex items-center gap-3 shadow">
+        <span className="text-2xl">⭐</span>
+        <div className="flex-1">
+          <div className="h-5 bg-white/70 rounded-full overflow-hidden shadow-inner">
+            <div
+              className="h-full rounded-full transition-all duration-700 ease-out relative overflow-hidden"
               style={{
                 width: `${percent}%`,
-                background: percent === 100 ? 'linear-gradient(90deg,#22c55e,#86efac)' : 'linear-gradient(90deg,#6366f1,#a78bfa,#ec4899)',
+                background: percent === 100
+                  ? 'linear-gradient(90deg,#22c55e,#86efac)'
+                  : 'linear-gradient(90deg,#f59e0b,#ef4444,#8b5cf6)',
               }}
             >
               <div className="absolute inset-0 shimmer" />
             </div>
           </div>
         </div>
-
-        {/* Both drop zones — always visible at top so drag targets are reachable */}
-        <div className="flex-shrink-0 flex gap-3">
-          <div className="flex-1"><CompleteZone isOver={overZone === 'done-zone'} /></div>
-          <div className="flex-1"><UndoZone isOver={overZone === 'undo-zone'} /></div>
-        </div>
-
-        {/* Scrollable task list — min-h-0 lets flex-1 actually shrink */}
-        <div className="flex-1 min-h-0 overflow-y-auto panel-scroll flex flex-col gap-3">
-          {pendingActivities.length === 0 && completedActivities.length > 0 && (
-            <div className="flex flex-col items-center justify-center py-6 gap-2">
-              <div className="text-6xl bounce-in">🏆</div>
-              <div className="text-2xl font-bold text-green-400 text-center">ALL DONE! YOU&apos;RE AMAZING!</div>
-            </div>
-          )}
-          {pendingActivities.map((a) => (
-            <PendingCard key={a.id} activity={a} isDraggingThis={draggingId === `pending-${a.id}`} />
-          ))}
-          {completedActivities.length > 0 && (
-            <>
-              <div className="text-xs text-slate-500 uppercase tracking-wider px-1 mt-1">Completed</div>
-              {completedActivities.map((a) => (
-                <CompletedCard key={a.id} activity={a} isDraggingThis={draggingId === `completed-${a.id}`} />
-              ))}
-            </>
-          )}
-        </div>
-
-        <DragOverlay>
-          {draggingActivity && <OverlayCard activity={draggingActivity} isCompleted={draggingIsCompleted} />}
-        </DragOverlay>
+        <span className="text-lg font-black text-violet-700 whitespace-nowrap">{completedCount}/{totalCount}</span>
       </div>
-    </DndContext>
+
+      {/* All done! */}
+      {pendingActivities.length === 0 && completedActivities.length > 0 && (
+        <div className="flex-shrink-0 bg-gradient-to-r from-green-400 to-emerald-400 rounded-2xl px-5 py-4 flex items-center gap-3 shadow-lg">
+          <span className="text-4xl bounce-in">🏆</span>
+          <div>
+            <div className="text-xl font-black text-white">ALL DONE!</div>
+            <div className="text-green-100 text-sm">You&apos;re absolutely amazing today!</div>
+          </div>
+        </div>
+      )}
+
+      {/* Task list */}
+      <div className="flex-1 min-h-0 overflow-y-auto panel-scroll flex flex-col gap-3 pb-2">
+        {/* Pending */}
+        {pendingActivities.map((a, i) => (
+          <TaskCard key={a.id} activity={a} index={i} onTap={() => handleComplete(a.id)} />
+        ))}
+
+        {/* Completed */}
+        {completedActivities.length > 0 && (
+          <>
+            <div className="text-xs font-bold uppercase tracking-widest text-violet-500/70 px-1 mt-1">
+              Done — tap to undo
+            </div>
+            {completedActivities.map((a, i) => (
+              <CompletedCard key={a.id} activity={a} index={i} onTap={() => uncompleteTask(a.id)} />
+            ))}
+          </>
+        )}
+      </div>
+    </div>
   )
 }

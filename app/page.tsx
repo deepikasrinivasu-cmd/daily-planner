@@ -14,14 +14,13 @@ import { useKidTracker } from '@/hooks/useSupabase'
 const KidTracker = dynamic_(() => import('./components/KidTracker'), { ssr: false })
 
 type Tab = 'missions' | 'rewards' | 'schedule' | 'groceries'
-const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: 'missions',  label: 'Missions',  icon: '⭐' },
-  { id: 'rewards',   label: 'Rewards',   icon: '🏴‍☠️' },
-  { id: 'schedule',  label: 'Schedule',  icon: '📅' },
-  { id: 'groceries', label: 'Groceries', icon: '🛒' },
+const TABS: { id: Tab; label: string; icon: string; color: string }[] = [
+  { id: 'missions',  label: 'Missions',  icon: '⭐', color: 'from-amber-400 to-orange-400' },
+  { id: 'rewards',   label: 'Rewards',   icon: '🏴‍☠️', color: 'from-violet-400 to-purple-500' },
+  { id: 'schedule',  label: 'Schedule',  icon: '📅', color: 'from-blue-400 to-cyan-400' },
+  { id: 'groceries', label: 'Groceries', icon: '🛒', color: 'from-green-400 to-emerald-400' },
 ]
 
-// What to do after PIN is confirmed
 type PinIntent = 'settings' | 'reset'
 
 function AppContent() {
@@ -33,30 +32,34 @@ function AppContent() {
 
   const handlePinSuccess = async () => {
     setPinIntent(null)
-    if (pinIntent === 'settings') {
-      setShowAdmin(true)
-    } else if (pinIntent === 'reset') {
+    if (pinIntent === 'settings') setShowAdmin(true)
+    else if (pinIntent === 'reset') {
       await resetTasks()
       setResetDone(true)
       setTimeout(() => setResetDone(false), 2000)
     }
   }
 
+  const activeTab = TABS.find(t => t.id === tab)!
+
   return (
     <>
-      <div className="w-screen h-screen flex flex-col overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+      {/* Bright gradient background */}
+      <div className="w-screen h-screen flex flex-col overflow-hidden"
+        style={{ background: 'linear-gradient(160deg, #e0e7ff 0%, #fce7f3 40%, #fef3c7 100%)' }}>
 
         {/* Header */}
-        <div className="flex-shrink-0 flex items-center px-4 py-3 border-b border-slate-800/60 gap-3">
-          <div className="text-xl font-black bg-gradient-to-r from-indigo-400 to-pink-400 bg-clip-text text-transparent whitespace-nowrap">
-            Family HQ
+        <div className="flex-shrink-0 flex items-center px-4 py-3 gap-3"
+          style={{ background: 'linear-gradient(90deg, #6366f1, #a855f7, #ec4899)', }}>
+          <div className="text-xl font-black text-white drop-shadow whitespace-nowrap">
+            🏠 Family HQ
           </div>
           <div className="flex-1 flex justify-center">
             <Clock />
           </div>
           <button
             onClick={() => setPinIntent('settings')}
-            className="w-10 h-10 rounded-xl bg-slate-700/60 hover:bg-slate-600 border border-slate-600 flex items-center justify-center text-xl transition-colors flex-shrink-0"
+            className="w-10 h-10 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center text-xl transition-colors flex-shrink-0 border border-white/30"
           >
             ⚙️
           </button>
@@ -67,26 +70,19 @@ function AppContent() {
 
           {tab === 'missions' && (
             <div className="flex flex-col h-full px-4 pt-4 pb-3 gap-3">
-              {/* Mission header + reset button */}
               <div className="flex-shrink-0 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-xl shadow-lg shadow-orange-500/30 flex-shrink-0">
-                  ⭐
-                </div>
                 <div className="flex-1">
-                  <div className="text-xl font-black text-white leading-tight">Mission Control</div>
-                  <div className="text-slate-400 text-xs">Drag to complete · drag back to undo</div>
+                  <div className="text-2xl font-black text-violet-800 leading-tight">Mission Control 🚀</div>
+                  <div className="text-violet-500 text-sm font-medium">Tap a mission to complete it!</div>
                 </div>
                 <button
                   onClick={() => setPinIntent('reset')}
-                  className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-semibold transition-all
-                    ${resetDone
-                      ? 'bg-green-500/20 border-green-500/40 text-green-400'
-                      : 'bg-slate-700/60 border-slate-600 text-slate-400 hover:text-white hover:border-slate-500'}`}
+                  className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all shadow
+                    ${resetDone ? 'bg-green-400 text-white' : 'bg-white/70 text-violet-600 border border-violet-200 hover:bg-white'}`}
                 >
-                  {resetDone ? '✓ Reset!' : '🔄 Reset'}
+                  {resetDone ? '✓ Done!' : '🔄 Reset'}
                 </button>
               </div>
-
               <div className="flex-1 min-h-0">
                 <KidTracker />
               </div>
@@ -95,14 +91,9 @@ function AppContent() {
 
           {tab === 'rewards' && (
             <div className="flex flex-col h-full px-4 pt-4 pb-3 gap-3">
-              <div className="flex-shrink-0 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center text-xl shadow-lg flex-shrink-0">
-                  🏴‍☠️
-                </div>
-                <div>
-                  <div className="text-xl font-black text-white leading-tight">Bounty Rewards</div>
-                  <div className="text-slate-400 text-xs">Complete missions to unlock rewards!</div>
-                </div>
+              <div className="flex-shrink-0">
+                <div className="text-2xl font-black text-violet-800">Bounty Rewards 🏴‍☠️</div>
+                <div className="text-violet-500 text-sm font-medium">Complete missions to unlock these!</div>
               </div>
               <div className="flex-1 min-h-0 overflow-y-auto panel-scroll">
                 <BountyBar percent={percent} />
@@ -125,15 +116,15 @@ function AppContent() {
         </div>
 
         {/* Tab bar */}
-        <div className="flex-shrink-0 flex border-t border-slate-800 bg-slate-900/80 px-2 py-1 gap-1">
+        <div className="flex-shrink-0 flex bg-white/80 backdrop-blur border-t border-white/60 px-2 py-2 gap-2 shadow-lg">
           {TABS.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex-1 flex flex-col items-center gap-0.5 py-2 rounded-xl transition-all font-semibold
+              className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-2xl transition-all font-bold
                 ${tab === t.id
-                  ? 'bg-indigo-600/80 text-white shadow-lg shadow-indigo-500/20'
-                  : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800'}`}
+                  ? `bg-gradient-to-b ${t.color} text-white shadow-lg scale-105`
+                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
             >
               <span className="text-2xl leading-none">{t.icon}</span>
               <span className="text-xs">{t.label}</span>
@@ -143,17 +134,8 @@ function AppContent() {
 
       </div>
 
-      {/* PIN gate */}
-      {pinIntent && (
-        <PinModal
-          onSuccess={handlePinSuccess}
-          onClose={() => setPinIntent(null)}
-        />
-      )}
-
-      {/* Admin modal (only opens after correct PIN) */}
+      {pinIntent && <PinModal onSuccess={handlePinSuccess} onClose={() => setPinIntent(null)} />}
       {showAdmin && <AdminModal onClose={() => setShowAdmin(false)} />}
-
       <canvas id="confetti-canvas" />
     </>
   )
