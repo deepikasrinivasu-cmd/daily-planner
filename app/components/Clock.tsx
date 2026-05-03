@@ -9,16 +9,15 @@ export default function Clock() {
     return () => clearInterval(id)
   }, [])
 
-  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-
   const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
-  const dateStr = `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}`
+  const dateStr = `${days[now.getDay()]} ${months[now.getMonth()]} ${now.getDate()}`
 
   return (
-    <div className="text-center">
-      <div className="text-5xl font-bold text-white tracking-tight">{timeStr}</div>
-      <div className="text-lg text-slate-400 mt-1">{dateStr}</div>
+    <div className="flex items-center gap-2">
+      <span className="text-xl font-bold text-white tracking-tight">{timeStr}</span>
+      <span className="text-sm text-slate-400">{dateStr}</span>
     </div>
   )
 }
