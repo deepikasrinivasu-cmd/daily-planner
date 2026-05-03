@@ -75,11 +75,20 @@ export function useKidTracker() {
     await loadData()
   }, [loadData])
 
+  const resetTasks = useCallback(async () => {
+    const date = today()
+    await supabase
+      .from('daily_tasks')
+      .update({ completed: false, completed_at: null })
+      .eq('date', date)
+    await loadData()
+  }, [loadData])
+
   const completedCount = tasks.filter((t) => t.completed).length
   const totalCount = tasks.length
   const percent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
 
-  return { activities, tasks, loading, completedCount, totalCount, percent, completeTask, uncompleteTask, reload: loadData }
+  return { activities, tasks, loading, completedCount, totalCount, percent, completeTask, uncompleteTask, resetTasks, reload: loadData }
 }
 
 // ── Bounties ──────────────────────────────────────────────────────────────────
