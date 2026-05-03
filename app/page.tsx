@@ -9,14 +9,16 @@ import GroceryPanel from './components/GroceryPanel'
 import BountyBar from './components/BountyBar'
 import AdminModal from './components/AdminModal'
 import PinModal from './components/PinModal'
+import QuickTasksPanel from './components/QuickTasksPanel'
 import { useKidTracker } from '@/hooks/useSupabase'
 
 const KidTracker = dynamic_(() => import('./components/KidTracker'), { ssr: false })
 
-type Tab = 'missions' | 'rewards' | 'schedule' | 'groceries'
+type Tab = 'missions' | 'rewards' | 'schedule' | 'groceries' | 'tasks'
 const TABS: { id: Tab; label: string; icon: string; bg: string; text: string }[] = [
   { id: 'missions',  label: 'Missions',  icon: '⭐', bg: '#FFD60A', text: '#000000' },
   { id: 'rewards',   label: 'Rewards',   icon: '🏆', bg: '#FF6B6B', text: '#000000' },
+  { id: 'tasks',     label: 'Tasks',     icon: '⚡', bg: '#A855F7', text: '#ffffff' },
   { id: 'schedule',  label: 'Schedule',  icon: '📅', bg: '#4ECDC4', text: '#000000' },
   { id: 'groceries', label: 'Groceries', icon: '🛒', bg: '#FF9F1C', text: '#000000' },
 ]
@@ -103,6 +105,12 @@ function AppContent() {
               <div className="flex-1 min-h-0 overflow-y-auto panel-scroll">
                 <BountyBar percent={percent} />
               </div>
+            </div>
+          )}
+
+          {tab === 'tasks' && (
+            <div className="flex flex-col h-full px-3 pt-3 pb-3">
+              <QuickTasksPanel />
             </div>
           )}
 

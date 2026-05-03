@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-import type { Activity, DailyTask, Bounty, Store, GroceryItem, FamilyEvent } from '@/types/database'
+import type { Activity, DailyTask, Bounty, Store, GroceryItem, FamilyEvent, QuickTask } from '@/types/database'
 
 function today() {
   return new Date().toISOString().split('T')[0]
@@ -200,6 +200,43 @@ export function useFamilyEvents() {
   }
 
   return { events, addEvent, deleteEvent }
+}
+
+// ── Quick tasks ───────────────────────────────────────────────────────────────
+export function useQuickTasks() {
+  const [tasks, setTasks] = useState<QuickTask[]>([])
+
+  const load = useCallback(async () => {
+    const { data } = await supabase.from('quick_tasks').select('*').order('created_at')
+    setTasks(data ?? [])
+  }, [])
+
+  useEffect(() => {
+    load()
+    const channel = supabase.channel(channelId('quick-tasks'))
+    channel
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'quick_tasks' }, load)
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [load])
+
+  const addTask = async (name: string) => {
+    await supabase.from('quick_tasks').insert({ name, completed: false })
+  }
+  const toggleTask = async (id: string, completed: boolean) => {
+    await supabase.from('quick_tasks').update({ completed: !completed }).eq('id', id)
+  }
+  const deleteTask = async (id: string) => {
+    await supabase.from('quick_tasks').delete().eq('id', id)
+  }
+  const clearCompleted = async () => {
+    await supabase.from('quick_tasks').delete().eq('completed', true)
+  }
+  const clearAll = async () => {
+    await supabase.from('quick_tasks').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+  }
+
+  return { tasks, addTask, toggleTask, deleteTask, clearCompleted, clearAll }
 }
 
 // ── Activities admin ──────────────────────────────────────────────────────────

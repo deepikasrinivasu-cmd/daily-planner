@@ -39,6 +39,12 @@ export type Database = {
         Update: { id?: string; title?: string; time?: string; date?: string; color?: string; created_at?: string }
         Relationships: []
       }
+      quick_tasks: {
+        Row: { id: string; name: string; completed: boolean; created_at: string }
+        Insert: { id?: string; name: string; completed?: boolean; created_at?: string }
+        Update: { id?: string; name?: string; completed?: boolean; created_at?: string }
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
@@ -53,3 +59,4 @@ export type Activity = Database['public']['Tables']['activities']['Row']
 export type DailyTask = Database['public']['Tables']['daily_tasks']['Row']
 export type Bounty = Database['public']['Tables']['bounties']['Row']
 export type FamilyEvent = Database['public']['Tables']['family_events']['Row']
+export type QuickTask = Database['public']['Tables']['quick_tasks']['Row']
