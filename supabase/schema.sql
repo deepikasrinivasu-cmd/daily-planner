@@ -57,7 +57,28 @@ create table if not exists family_events (
   created_at timestamptz default now()
 );
 
--- Enable realtime on all tables
+-- ── Row Level Security ────────────────────────────────────────────────────────
+-- RLS is enabled on every table. Since this is a private family app with no
+-- user login, we grant full access to the anon role (your app's key).
+-- This stops random internet users from accessing the API directly even if
+-- they somehow discover the Supabase URL — they'd still need your anon key.
+
+alter table stores          enable row level security;
+alter table grocery_items   enable row level security;
+alter table activities      enable row level security;
+alter table daily_tasks     enable row level security;
+alter table bounties        enable row level security;
+alter table family_events   enable row level security;
+
+-- Allow the app (anon key) to do everything
+create policy "anon full access" on stores          for all to anon using (true) with check (true);
+create policy "anon full access" on grocery_items   for all to anon using (true) with check (true);
+create policy "anon full access" on activities      for all to anon using (true) with check (true);
+create policy "anon full access" on daily_tasks     for all to anon using (true) with check (true);
+create policy "anon full access" on bounties        for all to anon using (true) with check (true);
+create policy "anon full access" on family_events   for all to anon using (true) with check (true);
+
+-- ── Realtime ──────────────────────────────────────────────────────────────────
 alter publication supabase_realtime add table stores;
 alter publication supabase_realtime add table grocery_items;
 alter publication supabase_realtime add table activities;
