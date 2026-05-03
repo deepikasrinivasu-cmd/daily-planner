@@ -78,13 +78,8 @@ create policy "anon full access" on daily_tasks     for all to anon using (true)
 create policy "anon full access" on bounties        for all to anon using (true) with check (true);
 create policy "anon full access" on family_events   for all to anon using (true) with check (true);
 
--- ── Realtime ──────────────────────────────────────────────────────────────────
-alter publication supabase_realtime add table stores;
-alter publication supabase_realtime add table grocery_items;
-alter publication supabase_realtime add table activities;
-alter publication supabase_realtime add table daily_tasks;
-alter publication supabase_realtime add table bounties;
-alter publication supabase_realtime add table family_events;
+-- NOTE: Enable Realtime manually in the Supabase dashboard:
+-- Database → Replication → supabase_realtime → toggle on all 6 tables
 
 -- Seed default stores
 insert into stores (name, color) values
