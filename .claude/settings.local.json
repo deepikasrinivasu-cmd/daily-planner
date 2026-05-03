@@ -10,7 +10,9 @@
       "Bash(npm run *)",
       "Bash(git init *)",
       "Bash(git add *)",
-      "Bash(git commit -m 'Initial commit: Family day planner app *)"
+      "Bash(git commit -m 'Initial commit: Family day planner app *)",
+      "Bash(git commit *)",
+      "mcp__Claude_in_Chrome__tabs_context_mcp"
     ]
   }
 }

@@ -154,7 +154,7 @@ export default function AdminModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center" onClick={onClose}>
       <div
-        className="w-[700px] max-h-[800px] bg-slate-900 rounded-3xl border border-slate-700 shadow-2xl flex flex-col overflow-hidden bounce-in"
+        className="w-[960px] max-h-[1600px] bg-slate-900 rounded-3xl border border-slate-700 shadow-2xl flex flex-col overflow-hidden bounce-in"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

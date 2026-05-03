@@ -1,10 +1,15 @@
 'use client'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Activity, DailyTask, Bounty, Store, GroceryItem, FamilyEvent } from '@/types/database'
 
 function today() {
   return new Date().toISOString().split('T')[0]
+}
+
+// Unique channel name per mount — avoids StrictMode double-subscribe collision
+function channelId(name: string) {
+  return `${name}-${Math.random().toString(36).slice(2)}`
 }
 
 // ── Activities & daily tasks ──────────────────────────────────────────────────
@@ -23,7 +28,6 @@ export function useKidTracker() {
     const activeActs = acts ?? []
     const existing = existingTasks ?? []
 
-    // Auto-create today's tasks for any missing activities
     const existingIds = new Set(existing.map((t) => t.activity_id))
     const toCreate = activeActs.filter((a) => !existingIds.has(a.id))
     if (toCreate.length > 0) {
@@ -42,13 +46,12 @@ export function useKidTracker() {
 
   useEffect(() => {
     loadData()
-
-    const channel = supabase
-      .channel('kid-tracker')
+    const id = channelId('kid-tracker')
+    const channel = supabase.channel(id)
+    channel
       .on('postgres_changes', { event: '*', schema: 'public', table: 'daily_tasks' }, loadData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'activities' }, loadData)
       .subscribe()
-
     return () => { supabase.removeChannel(channel) }
   }, [loadData])
 
@@ -83,18 +86,19 @@ export function useKidTracker() {
 export function useBounties() {
   const [bounties, setBounties] = useState<Bounty[]>([])
 
-  useEffect(() => {
-    supabase.from('bounties').select('*').order('sort_order').then(({ data }) => setBounties(data ?? []))
-
-    const channel = supabase
-      .channel('bounties')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bounties' }, () => {
-        supabase.from('bounties').select('*').order('sort_order').then(({ data }) => setBounties(data ?? []))
-      })
-      .subscribe()
-
-    return () => { supabase.removeChannel(channel) }
+  const load = useCallback(async () => {
+    const { data } = await supabase.from('bounties').select('*').order('sort_order')
+    setBounties(data ?? [])
   }, [])
+
+  useEffect(() => {
+    load()
+    const channel = supabase.channel(channelId('bounties'))
+    channel
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bounties' }, load)
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [load])
 
   const addBounty = async (b: { name: string; icon: string; threshold: number; color: string }) => {
     await supabase.from('bounties').insert({ ...b, sort_order: Date.now() })
@@ -122,8 +126,8 @@ export function useGroceries() {
 
   useEffect(() => {
     loadAll()
-    const channel = supabase
-      .channel('groceries')
+    const channel = supabase.channel(channelId('groceries'))
+    channel
       .on('postgres_changes', { event: '*', schema: 'public', table: 'stores' }, loadAll)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'grocery_items' }, loadAll)
       .subscribe()
@@ -172,8 +176,8 @@ export function useFamilyEvents() {
 
   useEffect(() => {
     loadEvents()
-    const channel = supabase
-      .channel('family-events')
+    const channel = supabase.channel(channelId('family-events'))
+    channel
       .on('postgres_changes', { event: '*', schema: 'public', table: 'family_events' }, loadEvents)
       .subscribe()
     return () => { supabase.removeChannel(channel) }
@@ -200,8 +204,8 @@ export function useActivities() {
 
   useEffect(() => {
     load()
-    const channel = supabase
-      .channel('activities-admin')
+    const channel = supabase.channel(channelId('activities-admin'))
+    channel
       .on('postgres_changes', { event: '*', schema: 'public', table: 'activities' }, load)
       .subscribe()
     return () => { supabase.removeChannel(channel) }
