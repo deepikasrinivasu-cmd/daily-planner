@@ -43,9 +43,9 @@ export async function GET(req: NextRequest) {
   const hour = now.getUTCHours()
   const dayOfWeek = now.getUTCDay() // 0=Sun, 1=Mon...
 
-  // Morning (8 AM UTC): check for family events today or tomorrow
+  // Morning (8 AM UTC): always send a morning nudge, include events if any
   if (hour === 8) {
-    const today = now.toISOString().split('T')[0]
+    const todayStr = now.toISOString().split('T')[0]
     const tomorrow = new Date(now)
     tomorrow.setDate(tomorrow.getDate() + 1)
     const tomorrowStr = tomorrow.toISOString().split('T')[0]
@@ -53,16 +53,19 @@ export async function GET(req: NextRequest) {
     const { data: events } = await supabase
       .from('family_events')
       .select('*')
-      .in('date', [today, tomorrowStr])
+      .in('date', [todayStr, tomorrowStr])
       .order('date')
       .order('time')
 
     if (events && events.length > 0) {
       const lines = events.map((e) => {
-        const label = e.date === today ? 'Today' : 'Tomorrow'
+        const label = e.date === todayStr ? 'Today' : 'Tomorrow'
         return `${label}: ${e.title} at ${e.time}`
       })
-      await sendToAll('📅 Family Schedule Reminder', lines.join('\n'))
+      await sendToAll('📅 Family Schedule', lines.join('\n'))
+    } else {
+      // Always send something in the morning so the notification fires reliably
+      await sendToAll('🌅 Good morning, Family HQ!', "Time to check today's missions and plan the day!")
     }
   }
 

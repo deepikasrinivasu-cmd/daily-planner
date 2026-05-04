@@ -71,16 +71,23 @@ export function useKidTracker() {
     setStreak(await calcStreak())
   }, [])
 
-  // Auto-reset when a new day starts while the page is open
+  // Auto-reset when a new day starts — covers both:
+  // 1. Page stays open past midnight (interval check)
+  // 2. iPhone wakes from sleep / app foregrounded (visibilitychange)
   useEffect(() => {
-    const timer = setInterval(() => {
+    const checkDate = () => {
       const now = today()
       if (now !== dateRef.current) {
         dateRef.current = now
         loadData()
       }
-    }, 30_000)
-    return () => clearInterval(timer)
+    }
+    document.addEventListener('visibilitychange', checkDate)
+    const timer = setInterval(checkDate, 30_000)
+    return () => {
+      document.removeEventListener('visibilitychange', checkDate)
+      clearInterval(timer)
+    }
   }, [loadData])
 
   useEffect(() => {
