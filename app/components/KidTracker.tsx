@@ -72,7 +72,7 @@ function CompletedCard({ activity, onTap }: { activity: Activity; onTap: () => v
 }
 
 export default function KidTracker() {
-  const { activities, tasks, loading, completedCount, totalCount, percent, completeTask, uncompleteTask } = useKidTracker()
+  const { activities, tasks, loading, completedCount, totalCount, percent, streak, completeTask, uncompleteTask } = useKidTracker()
   const [reaction, setReaction] = useState<{ text: string; emoji: string } | null>(null)
   const reactionTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -96,7 +96,7 @@ export default function KidTracker() {
     <div className="flex flex-col h-full gap-3 relative">
       {reaction && <FloatingReaction text={reaction.text} emoji={reaction.emoji} />}
 
-      {/* Progress bar */}
+      {/* Progress bar + streak */}
       <div className="flex-shrink-0 flex items-center gap-3 bg-white rounded-2xl px-4 py-3 shadow border-2 border-gray-100">
         <span className="text-2xl">🚀</span>
         <div className="flex-1 h-6 bg-gray-100 rounded-full overflow-hidden border border-gray-200">
@@ -109,6 +109,12 @@ export default function KidTracker() {
           </div>
         </div>
         <span className="text-lg font-black text-gray-800 whitespace-nowrap">{completedCount}/{totalCount} ⭐</span>
+        {streak > 0 && (
+          <div className="flex items-center gap-1 px-2 py-1 rounded-xl bg-orange-100 border-2 border-orange-300 flex-shrink-0">
+            <span className="text-lg">🔥</span>
+            <span className="text-sm font-black text-orange-700">{streak}</span>
+          </div>
+        )}
       </div>
 
       {/* All done banner */}

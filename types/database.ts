@@ -45,6 +45,18 @@ export type Database = {
         Update: { id?: string; name?: string; completed?: boolean; created_at?: string }
         Relationships: []
       }
+      daily_completions: {
+        Row: { date: string }
+        Insert: { date: string }
+        Update: { date?: string }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: { id: string; endpoint: string; p256dh: string; auth_key: string; created_at: string }
+        Insert: { id?: string; endpoint: string; p256dh: string; auth_key: string; created_at?: string }
+        Update: { id?: string; endpoint?: string; p256dh?: string; auth_key?: string; created_at?: string }
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>

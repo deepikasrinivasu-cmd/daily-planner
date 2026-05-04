@@ -15,7 +15,11 @@
       "mcp__Claude_in_Chrome__tabs_context_mcp",
       "Bash(git remote *)",
       "Bash(git branch *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(npx tsc *)",
+      "Bash(node -e \"console.log\\(require\\('./node_modules/next/package.json'\\).version\\)\")",
+      "Bash(xargs grep *)",
+      "Bash(node -e \"try{require\\('web-push'\\);console.log\\('installed'\\)}catch\\(e\\){console.log\\('not installed'\\)}\")"
     ]
   }
 }

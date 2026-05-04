@@ -4,6 +4,27 @@ import { useQuickTasks } from '@/hooks/useSupabase'
 import type { QuickTask } from '@/types/database'
 
 const TASK_COLORS = ['#FFD60A','#FF6B6B','#4ECDC4','#FF9F1C','#A78BFA','#34D399','#F472B6','#60A5FA']
+const WIN_MESSAGES = [
+  { text: 'NAILED IT!', emoji: '🔨' },
+  { text: 'BOOM!', emoji: '💥' },
+  { text: 'CRUSHED IT!', emoji: '💪' },
+  { text: 'LET\'S GO!', emoji: '🚀' },
+  { text: 'LEGEND!', emoji: '🌟' },
+  { text: 'YES!!', emoji: '🎉' },
+  { text: 'BEAST MODE!', emoji: '🔥' },
+  { text: 'ON FIRE!', emoji: '⚡' },
+]
+
+function WinOverlay({ msg }: { msg: { text: string; emoji: string } }) {
+  return (
+    <div className="fixed inset-0 flex flex-col items-center justify-center pointer-events-none z-50"
+      style={{ background: 'rgba(255,255,255,0.75)' }}>
+      <div className="bounce-in" style={{ fontSize: 100, lineHeight: 1 }}>{msg.emoji}</div>
+      <div className="bounce-in text-5xl font-black text-center px-6 drop-shadow-lg mt-4"
+        style={{ color: '#7c3aed', animationDelay: '0.1s' }}>{msg.text}</div>
+    </div>
+  )
+}
 
 function QuickTaskRow({ task, idx, onToggle, onDelete }: {
   task: QuickTask; idx: number; onToggle: () => void; onDelete: () => void
@@ -34,6 +55,16 @@ export default function QuickTasksPanel() {
   const { tasks, addTask, toggleTask, deleteTask, clearCompleted, clearAll } = useQuickTasks()
   const [input, setInput] = useState('')
   const [showClearConfirm, setShowClearConfirm] = useState<'done' | 'all' | null>(null)
+  const [winMsg, setWinMsg] = useState<{ text: string; emoji: string } | null>(null)
+
+  const handleToggle = async (task: QuickTask) => {
+    if (!task.completed) {
+      const msg = WIN_MESSAGES[Math.floor(Math.random() * WIN_MESSAGES.length)]
+      setWinMsg(msg)
+      setTimeout(() => setWinMsg(null), 1600)
+    }
+    await toggleTask(task.id, task.completed)
+  }
 
   const handleAdd = async () => {
     const trimmed = input.trim()
@@ -52,7 +83,8 @@ export default function QuickTasksPanel() {
   }
 
   return (
-    <div className="flex flex-col h-full gap-3">
+    <div className="flex flex-col h-full gap-3 relative">
+      {winMsg && <WinOverlay msg={winMsg} />}
       {/* Header */}
       <div className="flex-shrink-0 flex items-center justify-between">
         <div>
@@ -93,7 +125,7 @@ export default function QuickTasksPanel() {
         {/* Pending tasks */}
         {pending.map((task, i) => (
           <QuickTaskRow key={task.id} task={task} idx={i}
-            onToggle={() => toggleTask(task.id, task.completed)}
+            onToggle={() => handleToggle(task)}
             onDelete={() => deleteTask(task.id)} />
         ))}
 
@@ -109,7 +141,7 @@ export default function QuickTasksPanel() {
             )}
             {done.map((task, i) => (
               <QuickTaskRow key={task.id} task={task} idx={i}
-                onToggle={() => toggleTask(task.id, task.completed)}
+                onToggle={() => handleToggle(task)}
                 onDelete={() => deleteTask(task.id)} />
             ))}
           </>

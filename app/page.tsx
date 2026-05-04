@@ -10,6 +10,7 @@ import BountyBar from './components/BountyBar'
 import AdminModal from './components/AdminModal'
 import PinModal from './components/PinModal'
 import QuickTasksPanel from './components/QuickTasksPanel'
+import NotificationSetup from './components/NotificationSetup'
 import { useKidTracker } from '@/hooks/useSupabase'
 
 const KidTracker = dynamic_(() => import('./components/KidTracker'), { ssr: false })
@@ -131,6 +132,7 @@ function AppContent() {
 
       {pinIntent && <PinModal onSuccess={handlePinSuccess} onClose={() => setPinIntent(null)} />}
       {showAdmin && <AdminModal onClose={() => setShowAdmin(false)} />}
+      <NotificationSetup />
       <canvas id="confetti-canvas" />
     </>
   )

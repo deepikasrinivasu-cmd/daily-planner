@@ -3,6 +3,30 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Activity, DailyTask, Bounty, Store, GroceryItem, FamilyEvent, QuickTask } from '@/types/database'
 
+async function calcStreak(): Promise<number> {
+  const { data } = await supabase
+    .from('daily_completions')
+    .select('date')
+    .order('date', { ascending: false })
+    .limit(400)
+
+  if (!data || data.length === 0) return 0
+  const dates = new Set(data.map((r) => r.date as string))
+  const t = today()
+  const start = new Date(t + 'T00:00:00')
+  if (!dates.has(t)) start.setDate(start.getDate() - 1)
+
+  let count = 0
+  const d = new Date(start)
+  while (true) {
+    const ds = d.toISOString().split('T')[0]
+    if (!dates.has(ds)) break
+    count++
+    d.setDate(d.getDate() - 1)
+  }
+  return count
+}
+
 function today() {
   return new Date().toISOString().split('T')[0]
 }
@@ -17,6 +41,8 @@ export function useKidTracker() {
   const [activities, setActivities] = useState<Activity[]>([])
   const [tasks, setTasks] = useState<DailyTask[]>([])
   const [loading, setLoading] = useState(true)
+  const [streak, setStreak] = useState(0)
+  const dateRef = useRef(today())
 
   const loadData = useCallback(async () => {
     const date = today()
@@ -42,7 +68,20 @@ export function useKidTracker() {
 
     setActivities(activeActs)
     setLoading(false)
+    setStreak(await calcStreak())
   }, [])
+
+  // Auto-reset when a new day starts while the page is open
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = today()
+      if (now !== dateRef.current) {
+        dateRef.current = now
+        loadData()
+      }
+    }, 30_000)
+    return () => clearInterval(timer)
+  }, [loadData])
 
   useEffect(() => {
     loadData()
@@ -81,6 +120,8 @@ export function useKidTracker() {
       .from('daily_tasks')
       .update({ completed: false, completed_at: null })
       .eq('date', date)
+    // Remove today's completion record when reset
+    await supabase.from('daily_completions').delete().eq('date', date)
     await loadData()
   }, [loadData])
 
@@ -88,7 +129,19 @@ export function useKidTracker() {
   const totalCount = tasks.length
   const percent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
 
-  return { activities, tasks, loading, completedCount, totalCount, percent, completeTask, uncompleteTask, resetTasks, reload: loadData }
+  // Auto-mark day complete when all tasks done
+  useEffect(() => {
+    if (loading || totalCount === 0) return
+    if (percent === 100) {
+      supabase.from('daily_completions').upsert({ date: today() }, { onConflict: 'date' })
+        .then(() => calcStreak().then(setStreak))
+    } else {
+      supabase.from('daily_completions').delete().eq('date', today())
+        .then(() => calcStreak().then(setStreak))
+    }
+  }, [percent, loading, totalCount])
+
+  return { activities, tasks, loading, completedCount, totalCount, percent, streak, completeTask, uncompleteTask, resetTasks, reload: loadData }
 }
 
 // ── Bounties ──────────────────────────────────────────────────────────────────
