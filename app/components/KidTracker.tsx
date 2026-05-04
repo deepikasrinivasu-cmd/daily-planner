@@ -107,7 +107,7 @@ export default function KidTracker() {
       {showCoin && (
         <div className="absolute top-16 right-4 z-20 pointer-events-none float-up text-2xl font-black select-none"
           style={{ color: '#b45309', textShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>
-          +🪙10
+          +🪙2
         </div>
       )}
 

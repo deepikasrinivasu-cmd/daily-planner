@@ -3,8 +3,8 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Activity, DailyTask, Bounty, Store, GroceryItem, FamilyEvent, QuickTask, DogState } from '@/types/database'
 
-const COINS_PER_TASK = 10
-const COINS_ALL_DONE_BONUS = 25
+const COINS_PER_TASK = 2
+const COINS_ALL_DONE_BONUS = 5
 
 async function calcStreak(): Promise<number> {
   const { data } = await supabase
