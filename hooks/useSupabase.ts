@@ -221,18 +221,26 @@ export function useQuickTasks() {
   }, [load])
 
   const addTask = async (name: string) => {
-    await supabase.from('quick_tasks').insert({ name, completed: false })
+    const tempId = crypto.randomUUID()
+    const newTask: QuickTask = { id: tempId, name, completed: false, created_at: new Date().toISOString() }
+    setTasks(prev => [...prev, newTask])
+    const { data } = await supabase.from('quick_tasks').insert({ name, completed: false }).select().single()
+    if (data) setTasks(prev => prev.map(t => t.id === tempId ? data : t))
   }
   const toggleTask = async (id: string, completed: boolean) => {
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: !completed } : t))
     await supabase.from('quick_tasks').update({ completed: !completed }).eq('id', id)
   }
   const deleteTask = async (id: string) => {
+    setTasks(prev => prev.filter(t => t.id !== id))
     await supabase.from('quick_tasks').delete().eq('id', id)
   }
   const clearCompleted = async () => {
+    setTasks(prev => prev.filter(t => !t.completed))
     await supabase.from('quick_tasks').delete().eq('completed', true)
   }
   const clearAll = async () => {
+    setTasks([])
     await supabase.from('quick_tasks').delete().neq('id', '00000000-0000-0000-0000-000000000000')
   }
 
