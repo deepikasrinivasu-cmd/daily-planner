@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { useActivities, useBounties } from '@/hooks/useSupabase'
+import { useActivities, useBounties, useCoins } from '@/hooks/useSupabase'
 
 const ICONS = ['⭐','🪥','🛏️','🥞','👕','📚','📖','🧹','🛁','😴','🏃','🎨','🎮','🐶','🌳','💊','🥗','🧘','🎵','🚿']
 const BOUNTY_ICONS = ['📱','🍫','⚽','🎬','🏆','🍕','🎠','🍦','🎯','🛹','🎸','🃏']
@@ -123,8 +123,96 @@ function BountiesTab() {
   )
 }
 
+function ResetsTab() {
+  const { totalCoins, diamonds, resetCoins, resetDiamonds } = useCoins()
+  const [confirmCoins, setConfirmCoins]     = useState(false)
+  const [confirmDiamonds, setConfirmDiamonds] = useState(false)
+  const [doneCoins, setDoneCoins]           = useState(false)
+  const [doneDiamonds, setDoneDiamonds]     = useState(false)
+
+  const handleResetCoins = async () => {
+    await resetCoins()
+    setConfirmCoins(false)
+    setDoneCoins(true)
+    setTimeout(() => setDoneCoins(false), 2500)
+  }
+
+  const handleResetDiamonds = async () => {
+    await resetDiamonds()
+    setConfirmDiamonds(false)
+    setDoneDiamonds(true)
+    setTimeout(() => setDoneDiamonds(false), 2500)
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-sm text-gray-500 font-semibold px-1">
+        Use these to reset earned totals — e.g. after testing or a fresh start.
+      </p>
+
+      {/* Coins reset */}
+      <div className="flex flex-col gap-3 p-4 rounded-2xl bg-amber-50 border-2 border-amber-200">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="font-black text-gray-900 flex items-center gap-2">🪙 Coins</div>
+            <div className="text-sm text-gray-500 font-semibold">Current balance: <span className="font-black text-amber-700">{totalCoins}</span></div>
+          </div>
+          {doneCoins ? (
+            <span className="px-4 py-2 rounded-xl bg-green-100 text-green-700 font-black text-sm border-2 border-green-300">✓ Reset!</span>
+          ) : confirmCoins ? (
+            <div className="flex gap-2">
+              <button onClick={() => setConfirmCoins(false)}
+                className="px-3 py-2 rounded-xl bg-gray-100 text-gray-600 font-black text-sm border-2 border-gray-200">
+                Cancel
+              </button>
+              <button onClick={handleResetCoins}
+                className="px-3 py-2 rounded-xl bg-red-500 text-white font-black text-sm border-2 border-red-600">
+                Yes, reset
+              </button>
+            </div>
+          ) : (
+            <button onClick={() => setConfirmCoins(true)}
+              className="px-4 py-2 rounded-xl bg-amber-400 text-black font-black text-sm border-2 border-amber-500">
+              Reset to 0
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Diamonds reset */}
+      <div className="flex flex-col gap-3 p-4 rounded-2xl bg-cyan-50 border-2 border-cyan-200">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="font-black text-gray-900 flex items-center gap-2">💎 Diamonds</div>
+            <div className="text-sm text-gray-500 font-semibold">Current count: <span className="font-black text-cyan-700">{diamonds}</span></div>
+          </div>
+          {doneDiamonds ? (
+            <span className="px-4 py-2 rounded-xl bg-green-100 text-green-700 font-black text-sm border-2 border-green-300">✓ Reset!</span>
+          ) : confirmDiamonds ? (
+            <div className="flex gap-2">
+              <button onClick={() => setConfirmDiamonds(false)}
+                className="px-3 py-2 rounded-xl bg-gray-100 text-gray-600 font-black text-sm border-2 border-gray-200">
+                Cancel
+              </button>
+              <button onClick={handleResetDiamonds}
+                className="px-3 py-2 rounded-xl bg-red-500 text-white font-black text-sm border-2 border-red-600">
+                Yes, reset
+              </button>
+            </div>
+          ) : (
+            <button onClick={() => setConfirmDiamonds(true)}
+              className="px-4 py-2 rounded-xl bg-cyan-400 text-black font-black text-sm border-2 border-cyan-500">
+              Reset to 0
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function AdminModal({ onClose }: { onClose: () => void }) {
-  const [tab, setTab] = useState<'activities' | 'bounties'>('activities')
+  const [tab, setTab] = useState<'activities' | 'bounties' | 'resets'>('activities')
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex flex-col" onClick={onClose}>
@@ -148,17 +236,17 @@ export default function AdminModal({ onClose }: { onClose: () => void }) {
 
         {/* Tabs */}
         <div className="flex gap-2 px-5 py-3 border-b-2 border-gray-100 flex-shrink-0">
-          {(['activities', 'bounties'] as const).map(t => (
+          {(['activities', 'bounties', 'resets'] as const).map(t => (
             <button key={t} onClick={() => setTab(t)}
               className={`flex-1 py-2.5 rounded-xl text-sm font-black transition-colors border-2 ${tab === t ? 'bg-indigo-500 text-white border-indigo-500' : 'text-gray-500 border-gray-200 bg-gray-50 hover:border-indigo-300'}`}>
-              {t === 'activities' ? '📋 Activities' : '🏆 Bounties'}
+              {t === 'activities' ? '📋 Activities' : t === 'bounties' ? '🏆 Bounties' : '🔄 Resets'}
             </button>
           ))}
         </div>
 
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto panel-scroll p-5">
-          {tab === 'activities' ? <ActivitiesTab /> : <BountiesTab />}
+          {tab === 'activities' ? <ActivitiesTab /> : tab === 'bounties' ? <BountiesTab /> : <ResetsTab />}
         </div>
       </div>
     </div>

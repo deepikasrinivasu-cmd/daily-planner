@@ -447,7 +447,17 @@ export function useCoins() {
     await load()
   }, [dogState, load])
 
+  const resetCoins = useCallback(async () => {
+    await supabase.from('coin_ledger').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+    await load()
+  }, [load])
+
+  const resetDiamonds = useCallback(async () => {
+    await supabase.from('dog_state').update({ diamonds: 0 }).eq('id', 1)
+    await load()
+  }, [load])
+
   const diamonds = dogState?.diamonds ?? 0
 
-  return { totalCoins, diamonds, dogState, loading, spendCoins, markSecretSeen, giveDiamond }
+  return { totalCoins, diamonds, dogState, loading, spendCoins, markSecretSeen, giveDiamond, resetCoins, resetDiamonds }
 }
