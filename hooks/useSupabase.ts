@@ -441,5 +441,13 @@ export function useCoins() {
     await load()
   }, [dogState, load])
 
-  return { totalCoins, dogState, loading, spendCoins, markSecretSeen }
+  const giveDiamond = useCallback(async () => {
+    const current = dogState?.diamonds ?? 0
+    await supabase.from('dog_state').update({ diamonds: current + 1 }).eq('id', 1)
+    await load()
+  }, [dogState, load])
+
+  const diamonds = dogState?.diamonds ?? 0
+
+  return { totalCoins, diamonds, dogState, loading, spendCoins, markSecretSeen, giveDiamond }
 }

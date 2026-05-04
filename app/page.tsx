@@ -12,7 +12,7 @@ import PinModal from './components/PinModal'
 import QuickTasksPanel from './components/QuickTasksPanel'
 import NotificationSetup from './components/NotificationSetup'
 import ShizuPanel from './components/ShizuPanel'
-import { useKidTracker } from '@/hooks/useSupabase'
+import { useKidTracker, useCoins } from '@/hooks/useSupabase'
 
 const KidTracker = dynamic_(() => import('./components/KidTracker'), { ssr: false })
 
@@ -25,10 +25,11 @@ const TABS: { id: Tab; label: string; icon: string; bg: string; text: string }[]
   { id: 'groceries', label: 'Groceries', icon: '🛒', bg: '#FF9F1C', text: '#000000' },
 ]
 
-type PinIntent = 'settings' | 'reset'
+type PinIntent = 'settings' | 'reset' | 'diamond'
 
 function AppContent() {
   const { percent, resetTasks } = useKidTracker()
+  const { giveDiamond } = useCoins()
   const [tab, setTab] = useState<Tab>('missions')
   const [pinIntent, setPinIntent] = useState<PinIntent | null>(null)
   const [showAdmin, setShowAdmin] = useState(false)
@@ -41,6 +42,8 @@ function AppContent() {
       await resetTasks()
       setResetDone(true)
       setTimeout(() => setResetDone(false), 2000)
+    } else if (pinIntent === 'diamond') {
+      await giveDiamond()
     }
   }
 
@@ -62,15 +65,15 @@ function AppContent() {
         </div>
 
         {/* ── Tab bar — directly below header, always visible ── */}
-        <div className="flex-shrink-0 flex gap-2 px-3 py-2" style={{ background: '#1E1B4B' }}>
+        <div className="flex-shrink-0 flex gap-1.5 px-3 py-1.5" style={{ background: '#1E1B4B' }}>
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
-              className="flex-1 flex flex-col items-center gap-0.5 py-2 rounded-xl font-black text-xs transition-all border-2"
+              className="flex-1 flex flex-col items-center gap-0 py-1.5 rounded-xl font-black text-[10px] transition-all border-2"
               style={tab === t.id
                 ? { background: t.bg, color: t.text, borderColor: t.bg, transform: 'scale(1.05)' }
                 : { background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)', borderColor: 'transparent' }
               }>
-              <span className="text-2xl leading-none">{t.icon}</span>
+              <span className="text-xl leading-none">{t.icon}</span>
               <span>{t.label}</span>
             </button>
           ))}
@@ -93,7 +96,7 @@ function AppContent() {
                 </button>
               </div>
               <div className="flex-1 min-h-0">
-                <KidTracker />
+                <KidTracker onGiveDiamond={() => setPinIntent('diamond')} />
               </div>
             </div>
           )}
