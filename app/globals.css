@@ -81,3 +81,56 @@ html, body {
   100% { transform: translateY(-60px); opacity: 0; }
 }
 .float-up { animation: float-up 0.8s ease-out forwards; }
+
+/* ── Dog animations ─────────────────────────────────────────────────────── */
+@keyframes dog-idle {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-10px); }
+}
+.dog-idle { animation: dog-idle 2.4s ease-in-out infinite; will-change: transform; }
+
+@keyframes dog-wag {
+  0%,100% { transform: rotate(0deg) translateY(0); }
+  15%     { transform: rotate(-12deg) translateY(-6px); }
+  35%     { transform: rotate(12deg) translateY(-10px); }
+  55%     { transform: rotate(-8deg) translateY(-6px); }
+  75%     { transform: rotate(8deg) translateY(-3px); }
+}
+.dog-wag { animation: dog-wag 0.7s ease-in-out; }
+
+@keyframes dog-spin {
+  0%   { transform: rotate(0deg) scale(1); }
+  40%  { transform: rotate(200deg) scale(1.25); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+.dog-spin { animation: dog-spin 0.65s cubic-bezier(0.36,0.07,0.19,0.97); }
+
+@keyframes dog-launch {
+  0%   { transform: translateY(0) scale(1);    opacity: 1; }
+  30%  { transform: translateY(-50px) scale(0.8); opacity: 0.6; }
+  55%  { transform: translateY(-90px) scale(0.5); opacity: 0; }
+  75%  { transform: translateY(-90px) scale(0.5); opacity: 0; }
+  90%  { transform: translateY(-10px) scale(1.1); opacity: 1; }
+  100% { transform: translateY(0) scale(1);    opacity: 1; }
+}
+.dog-launch { animation: dog-launch 1.6s cubic-bezier(0.36,0.07,0.19,0.97); }
+
+@keyframes coin-pop {
+  0%   { transform: scale(0) rotate(-15deg); opacity: 0; }
+  55%  { transform: scale(1.35) rotate(6deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+.coin-pop { animation: coin-pop 0.45s cubic-bezier(0.36,0.07,0.19,0.97) forwards; }
+
+@keyframes secret-reveal {
+  0%   { transform: scaleY(0); opacity: 0; }
+  65%  { transform: scaleY(1.06); }
+  100% { transform: scaleY(1); opacity: 1; }
+}
+.secret-reveal { animation: secret-reveal 0.5s ease-out forwards; transform-origin: top; }
+
+@keyframes new-badge-pulse {
+  0%,100% { transform: scale(1); }
+  50%     { transform: scale(1.15); }
+}
+.new-badge { animation: new-badge-pulse 1s ease-in-out infinite; }

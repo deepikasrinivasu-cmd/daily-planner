@@ -69,9 +69,26 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Afternoon (5 PM UTC): grocery reminder Mon/Wed/Fri
+  // Afternoon (5 PM UTC): funny grocery reminder Mon/Wed/Fri
   if (hour === 17 && (dayOfWeek === 1 || dayOfWeek === 3 || dayOfWeek === 5)) {
-    await sendToAll('🛒 Grocery Reminder', "Don't forget to check and update the family grocery list!")
+    const groceryQuips = [
+      "🛒 The fridge is judging you. It's empty and disappointed.",
+      "🥦 Quick! Before someone eats the last of everything again!",
+      "🍕 Pizza doesn't buy itself. Update the grocery list!",
+      "🛒 Your fridge called. It's lonely and needs restocking.",
+      "🥛 Milk check! Is it still there... or gone again?",
+      "🍌 The bananas have feelings. Don't forget them this week.",
+      "🧀 Cheese emergency possible. Please verify immediately.",
+      "🍎 An apple a day — but only if you actually buy them!",
+      "🛒 Someone ate the last biscuit. You know who you are.",
+      "🥚 Egg situation: critical. Proceed to grocery list ASAP.",
+      "🍞 Bread status unknown. Investigation required.",
+      "🧃 Juice boxes running low. Kid alert incoming!",
+      "🛒 The grocery list is sad and lonely. Give it some love!",
+      "🐶 Even Shizu the space dog needs snacks. Stock up!",
+    ]
+    const idx = new Date().getDate() % groceryQuips.length
+    await sendToAll('🛒 Grocery Time!', groceryQuips[idx])
   }
 
   return NextResponse.json({ ok: true, hour, dayOfWeek })

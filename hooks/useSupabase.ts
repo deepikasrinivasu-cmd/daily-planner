@@ -1,7 +1,10 @@
 'use client'
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-import type { Activity, DailyTask, Bounty, Store, GroceryItem, FamilyEvent, QuickTask } from '@/types/database'
+import type { Activity, DailyTask, Bounty, Store, GroceryItem, FamilyEvent, QuickTask, DogState } from '@/types/database'
+
+const COINS_PER_TASK = 10
+const COINS_ALL_DONE_BONUS = 25
 
 async function calcStreak(): Promise<number> {
   const { data } = await supabase
@@ -108,6 +111,8 @@ export function useKidTracker() {
       .update({ completed: true, completed_at: new Date().toISOString() })
       .eq('activity_id', activityId)
       .eq('date', date)
+    // Award coins for this task
+    await supabase.from('coin_ledger').insert({ amount: COINS_PER_TASK, reason: 'task_complete', activity_id: activityId })
     await loadData()
   }, [loadData])
 
@@ -136,12 +141,25 @@ export function useKidTracker() {
   const totalCount = tasks.length
   const percent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
 
-  // Auto-mark day complete when all tasks done
+  // Auto-mark day complete + award bonus coins when all tasks done
   useEffect(() => {
     if (loading || totalCount === 0) return
     if (percent === 100) {
       supabase.from('daily_completions').upsert({ date: today() }, { onConflict: 'date' })
-        .then(() => calcStreak().then(setStreak))
+        .then(async () => {
+          // Award all-done bonus only once per day
+          const todayStart = `${today()}T00:00:00`
+          const { data: existing } = await supabase
+            .from('coin_ledger')
+            .select('id')
+            .eq('reason', 'all_done_bonus')
+            .gte('created_at', todayStart)
+            .limit(1)
+          if (!existing || existing.length === 0) {
+            await supabase.from('coin_ledger').insert({ amount: COINS_ALL_DONE_BONUS, reason: 'all_done_bonus' })
+          }
+          calcStreak().then(setStreak)
+        })
     } else {
       supabase.from('daily_completions').delete().eq('date', today())
         .then(() => calcStreak().then(setStreak))
@@ -336,4 +354,58 @@ export function useActivities() {
   }
 
   return { activities, addActivity, toggleActivity, deleteActivity }
+}
+
+// ── Coins & dog state ─────────────────────────────────────────────────────────
+export function useCoins() {
+  const [totalCoins, setTotalCoins] = useState(0)
+  const [dogState, setDogState] = useState<DogState | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  const load = useCallback(async () => {
+    const [{ data: ledger }, { data: dog }] = await Promise.all([
+      supabase.from('coin_ledger').select('amount'),
+      supabase.from('dog_state').select('*').eq('id', 1).single(),
+    ])
+    const total = (ledger ?? []).reduce((sum, r) => sum + r.amount, 0)
+    setTotalCoins(Math.max(0, total))
+    setDogState(dog)
+    setLoading(false)
+  }, [])
+
+  useEffect(() => {
+    load()
+    const channel = supabase.channel(channelId('coins'))
+    channel
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'coin_ledger' }, load)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'dog_state' }, load)
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [load])
+
+  const spendCoins = useCallback(async (
+    amount: number,
+    reason: 'dog_treat' | 'dog_haircut' | 'dog_bath'
+  ): Promise<boolean> => {
+    if (totalCoins < amount) return false
+    await supabase.from('coin_ledger').insert({ amount: -amount, reason })
+    await supabase.from('dog_state').update({
+      last_action: reason,
+      last_action_at: new Date().toISOString(),
+    }).eq('id', 1)
+    await load()
+    return true
+  }, [totalCoins, load])
+
+  const markSecretSeen = useCallback(async (index: number) => {
+    if (!dogState) return
+    const current = dogState.secrets_seen ?? []
+    if (current.includes(index)) return
+    await supabase.from('dog_state').update({
+      secrets_seen: [...current, index],
+    }).eq('id', 1)
+    await load()
+  }, [dogState, load])
+
+  return { totalCoins, dogState, loading, spendCoins, markSecretSeen }
 }

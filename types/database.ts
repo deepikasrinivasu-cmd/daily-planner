@@ -57,6 +57,18 @@ export type Database = {
         Update: { id?: string; endpoint?: string; p256dh?: string; auth_key?: string; created_at?: string }
         Relationships: []
       }
+      coin_ledger: {
+        Row: { id: string; amount: number; reason: string; activity_id: string | null; created_at: string }
+        Insert: { id?: string; amount: number; reason: string; activity_id?: string | null; created_at?: string }
+        Update: { id?: string; amount?: number; reason?: string; activity_id?: string | null; created_at?: string }
+        Relationships: []
+      }
+      dog_state: {
+        Row: { id: number; last_action: string | null; last_action_at: string | null; secrets_seen: number[] }
+        Insert: { id?: number; last_action?: string | null; last_action_at?: string | null; secrets_seen?: number[] }
+        Update: { id?: number; last_action?: string | null; last_action_at?: string | null; secrets_seen?: number[] }
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
@@ -72,3 +84,5 @@ export type DailyTask = Database['public']['Tables']['daily_tasks']['Row']
 export type Bounty = Database['public']['Tables']['bounties']['Row']
 export type FamilyEvent = Database['public']['Tables']['family_events']['Row']
 export type QuickTask = Database['public']['Tables']['quick_tasks']['Row']
+export type CoinLedgerRow = Database['public']['Tables']['coin_ledger']['Row']
+export type DogState = Database['public']['Tables']['dog_state']['Row']

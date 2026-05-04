@@ -11,6 +11,7 @@ import AdminModal from './components/AdminModal'
 import PinModal from './components/PinModal'
 import QuickTasksPanel from './components/QuickTasksPanel'
 import NotificationSetup from './components/NotificationSetup'
+import ShizuPanel from './components/ShizuPanel'
 import { useKidTracker } from '@/hooks/useSupabase'
 
 const KidTracker = dynamic_(() => import('./components/KidTracker'), { ssr: false })
@@ -18,7 +19,7 @@ const KidTracker = dynamic_(() => import('./components/KidTracker'), { ssr: fals
 type Tab = 'missions' | 'rewards' | 'schedule' | 'groceries' | 'tasks'
 const TABS: { id: Tab; label: string; icon: string; bg: string; text: string }[] = [
   { id: 'missions',  label: 'Missions',  icon: '⭐', bg: '#FFD60A', text: '#000000' },
-  { id: 'rewards',   label: 'Rewards',   icon: '🏆', bg: '#FF6B6B', text: '#000000' },
+  { id: 'rewards',   label: 'Buddy',     icon: '🐕', bg: '#FF6B6B', text: '#000000' },
   { id: 'tasks',     label: 'Tasks',     icon: '⚡', bg: '#A855F7', text: '#ffffff' },
   { id: 'schedule',  label: 'Schedule',  icon: '📅', bg: '#4ECDC4', text: '#000000' },
   { id: 'groceries', label: 'Groceries', icon: '🛒', bg: '#FF9F1C', text: '#000000' },
@@ -98,12 +99,10 @@ function AppContent() {
           )}
 
           {tab === 'rewards' && (
-            <div className="flex flex-col h-full px-3 pt-3 pb-3 gap-3">
-              <div className="flex-shrink-0">
-                <div className="text-2xl font-black text-gray-900">Bounty Rewards 🏆</div>
-                <div className="text-gray-500 text-sm font-semibold">Complete missions to unlock these!</div>
-              </div>
-              <div className="flex-1 min-h-0 overflow-y-auto panel-scroll">
+            <div className="flex flex-col h-full px-3 pt-3 pb-3 overflow-y-auto panel-scroll gap-4">
+              <ShizuPanel />
+              <div>
+                <div className="text-xs font-black text-gray-400 uppercase tracking-widest px-1 mb-2">Daily Bounties</div>
                 <BountyBar percent={percent} />
               </div>
             </div>

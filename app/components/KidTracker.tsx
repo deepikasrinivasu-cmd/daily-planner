@@ -74,7 +74,9 @@ function CompletedCard({ activity, onTap }: { activity: Activity; onTap: () => v
 export default function KidTracker() {
   const { activities, tasks, loading, completedCount, totalCount, percent, streak, completeTask, uncompleteTask } = useKidTracker()
   const [reaction, setReaction] = useState<{ text: string; emoji: string } | null>(null)
+  const [showCoin, setShowCoin] = useState(false)
   const reactionTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const coinTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const showReaction = useCallback(() => {
     const emoji = REACTIONS[Math.floor(Math.random() * REACTIONS.length)]
@@ -83,9 +85,16 @@ export default function KidTracker() {
     fireConfetti()
     if (reactionTimer.current) clearTimeout(reactionTimer.current)
     reactionTimer.current = setTimeout(() => setReaction(null), 1800)
+    // Coin float-up
+    setShowCoin(true)
+    if (coinTimer.current) clearTimeout(coinTimer.current)
+    coinTimer.current = setTimeout(() => setShowCoin(false), 900)
   }, [])
 
-  useEffect(() => () => { if (reactionTimer.current) clearTimeout(reactionTimer.current) }, [])
+  useEffect(() => () => {
+    if (reactionTimer.current) clearTimeout(reactionTimer.current)
+    if (coinTimer.current) clearTimeout(coinTimer.current)
+  }, [])
 
   const pendingActivities = activities.filter(a => !tasks.find(t => t.activity_id === a.id)?.completed)
   const completedActivities = activities.filter(a => tasks.find(t => t.activity_id === a.id)?.completed)
@@ -95,6 +104,12 @@ export default function KidTracker() {
   return (
     <div className="flex flex-col h-full gap-3 relative">
       {reaction && <FloatingReaction text={reaction.text} emoji={reaction.emoji} />}
+      {showCoin && (
+        <div className="absolute top-16 right-4 z-20 pointer-events-none float-up text-2xl font-black select-none"
+          style={{ color: '#b45309', textShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>
+          +🪙10
+        </div>
+      )}
 
       {/* Progress bar + streak */}
       <div className="flex-shrink-0 flex items-center gap-3 bg-white rounded-2xl px-4 py-3 shadow border-2 border-gray-100">
