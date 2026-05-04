@@ -1,18 +1,24 @@
 'use client'
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { useKidTracker } from '@/hooks/useSupabase'
+import { useKidTracker, checkMysteryBox, claimMysteryBox } from '@/hooks/useSupabase'
 import type { Activity } from '@/types/database'
 import confetti from 'canvas-confetti'
 
 const REACTIONS = ['🎉','🚀','⭐','🔥','💥','🌟','🏆','👊','💪','🎯']
 const FUN_MESSAGES = ['AWESOME!!','CRUSHING IT!','SUPERSTAR!','BOOM!','LEGENDARY!','EPIC WIN!','YOU ROCK!','NAILED IT!','UNSTOPPABLE!','CHAMPION!']
+const LUCKY_MESSAGES = ['LUCKY COIN!! 🍀','JACKPOT!! 🍀','BONUS!! 🍀','SHIZU SAYS LUCKY!! 🍀']
 
-// Solid bright colours — all with BLACK text for maximum contrast on any screen
 const CARD_COLORS = ['#FFD60A','#FF6B6B','#4ECDC4','#FF9F1C','#A8DADC','#FFBF69','#CBF3F0','#FF6392','#B7E4C7','#FFC6FF']
 
 function fireConfetti() {
   confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 }, colors: ['#ff0000','#ffff00','#00ff00','#0000ff','#ff00ff'] })
   setTimeout(() => confetti({ particleCount: 60, spread: 130, origin: { y: 0.5 }, startVelocity: 45 }), 200)
+}
+
+function fireMegaConfetti() {
+  confetti({ particleCount: 200, spread: 120, origin: { y: 0.5 }, colors: ['#FFD60A','#FF6B6B','#4ECDC4','#A855F7','#22c55e'] })
+  setTimeout(() => confetti({ particleCount: 150, angle: 60,  spread: 80, origin: { x: 0, y: 0.6 } }), 200)
+  setTimeout(() => confetti({ particleCount: 150, angle: 120, spread: 80, origin: { x: 1, y: 0.6 } }), 400)
 }
 
 function FloatingReaction({ text, emoji }: { text: string; emoji: string }) {
@@ -21,6 +27,76 @@ function FloatingReaction({ text, emoji }: { text: string; emoji: string }) {
       style={{ background: 'rgba(255,255,255,0.85)' }}>
       <div className="bounce-in text-8xl mb-3">{emoji}</div>
       <div className="bounce-in text-4xl font-black text-center px-4 drop-shadow" style={{ color: '#7c3aed', animationDelay: '0.1s' }}>{text}</div>
+    </div>
+  )
+}
+
+type BoxPhase = 'ready' | 'opening' | 'revealed'
+
+function MysteryBoxOverlay({ onClose }: { onClose: () => void }) {
+  const [phase, setPhase] = useState<BoxPhase>('ready')
+  const [coins, setCoins] = useState(0)
+  const claimed = useRef(false)
+
+  const handleTap = async () => {
+    if (phase !== 'ready' || claimed.current) return
+    claimed.current = true
+    setPhase('opening')
+    const amount = await claimMysteryBox()
+    setCoins(amount)
+    setTimeout(() => {
+      setPhase('revealed')
+      fireMegaConfetti()
+    }, 700)
+  }
+
+  const message = coins >= 7 ? 'JACKPOT!! 🎉🎉' : coins >= 4 ? 'Nice find! 🐾' : 'Good boy! 🐶'
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6"
+      style={{ background: 'rgba(0,0,0,0.82)' }}>
+
+      {phase === 'ready' && (
+        <>
+          <div className="bounce-in text-2xl font-black text-white mb-2 text-center">
+            🐕 Shizu dug something up!
+          </div>
+          <div className="text-base text-white/70 font-semibold mb-8 text-center">
+            Weekly mystery box — tap to open!
+          </div>
+          <button onClick={handleTap}
+            className="bounce-in text-[120px] leading-none select-none active:scale-90 transition-transform">
+            🎁
+          </button>
+          <div className="mt-6 text-xl font-black text-yellow-300 wiggle">TAP TO OPEN!</div>
+        </>
+      )}
+
+      {phase === 'opening' && (
+        <div className="flex flex-col items-center gap-4">
+          <div className="text-[120px] leading-none dog-spin select-none">📦</div>
+          <div className="text-xl font-black text-white">Opening...</div>
+        </div>
+      )}
+
+      {phase === 'revealed' && (
+        <div className="flex flex-col items-center gap-4">
+          <div className="bounce-in text-[100px] leading-none select-none">🪙</div>
+          <div className="bounce-in text-6xl font-black text-yellow-300 text-center"
+            style={{ animationDelay: '0.1s' }}>
+            +{coins} COINS!
+          </div>
+          <div className="bounce-in text-2xl font-black text-white text-center"
+            style={{ animationDelay: '0.2s' }}>
+            {message}
+          </div>
+          <button onClick={onClose}
+            className="mt-4 px-10 py-4 rounded-2xl font-black text-xl text-black border-2 border-yellow-600 bounce-in"
+            style={{ background: '#FFD60A', animationDelay: '0.3s' }}>
+            AWESOME! 🚀
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -42,7 +118,6 @@ function TaskCard({ activity, index, onTap }: { activity: Activity; index: numbe
         {activity.icon}
       </div>
       <span className="text-xl font-black text-black flex-1 leading-tight">{activity.name}</span>
-      {/* Big obvious green tap button */}
       <div className="w-14 h-14 rounded-full bg-white border-4 border-green-500 flex items-center justify-center flex-shrink-0 shadow">
         <span className="text-green-500 text-2xl font-black">○</span>
       </div>
@@ -73,43 +148,77 @@ function CompletedCard({ activity, onTap }: { activity: Activity; onTap: () => v
 
 export default function KidTracker() {
   const { activities, tasks, loading, completedCount, totalCount, percent, streak, completeTask, uncompleteTask } = useKidTracker()
-  const [reaction, setReaction] = useState<{ text: string; emoji: string } | null>(null)
-  const [showCoin, setShowCoin] = useState(false)
-  const reactionTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const coinTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [reaction, setReaction]         = useState<{ text: string; emoji: string } | null>(null)
+  const [showCoin, setShowCoin]         = useState<'normal' | 'lucky' | null>(null)
+  const [showMysteryBox, setShowMysteryBox] = useState(false)
+  const reactionTimer  = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const coinTimer      = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const mysteryTimer   = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const prevPercent    = useRef(percent)
+  const mysteryChecked = useRef(false) // guard per 100% event
 
-  const showReaction = useCallback(() => {
-    const emoji = REACTIONS[Math.floor(Math.random() * REACTIONS.length)]
-    const text = FUN_MESSAGES[Math.floor(Math.random() * FUN_MESSAGES.length)]
-    setReaction({ text, emoji })
+  const showReaction = useCallback((lucky: boolean) => {
+    if (lucky) {
+      const text = LUCKY_MESSAGES[Math.floor(Math.random() * LUCKY_MESSAGES.length)]
+      setReaction({ text, emoji: '🍀' })
+    } else {
+      const emoji = REACTIONS[Math.floor(Math.random() * REACTIONS.length)]
+      const text  = FUN_MESSAGES[Math.floor(Math.random() * FUN_MESSAGES.length)]
+      setReaction({ text, emoji })
+    }
     fireConfetti()
     if (reactionTimer.current) clearTimeout(reactionTimer.current)
     reactionTimer.current = setTimeout(() => setReaction(null), 1800)
+
     // Coin float-up
-    setShowCoin(true)
+    setShowCoin(lucky ? 'lucky' : 'normal')
     if (coinTimer.current) clearTimeout(coinTimer.current)
-    coinTimer.current = setTimeout(() => setShowCoin(false), 900)
+    coinTimer.current = setTimeout(() => setShowCoin(null), 1000)
   }, [])
+
+  // Detect transition to 100% → trigger mystery box check
+  useEffect(() => {
+    if (percent === 100 && prevPercent.current < 100 && !mysteryChecked.current) {
+      mysteryChecked.current = true
+      if (mysteryTimer.current) clearTimeout(mysteryTimer.current)
+      mysteryTimer.current = setTimeout(async () => {
+        const available = await checkMysteryBox()
+        if (available) setShowMysteryBox(true)
+      }, 2200) // after reaction animation finishes
+    }
+    if (percent < 100) {
+      mysteryChecked.current = false
+    }
+    prevPercent.current = percent
+  }, [percent])
 
   useEffect(() => () => {
     if (reactionTimer.current) clearTimeout(reactionTimer.current)
-    if (coinTimer.current) clearTimeout(coinTimer.current)
+    if (coinTimer.current)     clearTimeout(coinTimer.current)
+    if (mysteryTimer.current)  clearTimeout(mysteryTimer.current)
   }, [])
 
-  const pendingActivities = activities.filter(a => !tasks.find(t => t.activity_id === a.id)?.completed)
-  const completedActivities = activities.filter(a => tasks.find(t => t.activity_id === a.id)?.completed)
+  const pendingActivities   = activities.filter(a => !tasks.find(t => t.activity_id === a.id)?.completed)
+  const completedActivities = activities.filter(a =>  tasks.find(t => t.activity_id === a.id)?.completed)
 
   if (loading) return <div className="flex items-center justify-center h-full"><div className="text-6xl animate-bounce">⭐</div></div>
 
   return (
     <div className="flex flex-col h-full gap-3 relative">
       {reaction && <FloatingReaction text={reaction.text} emoji={reaction.emoji} />}
+
       {showCoin && (
-        <div className="absolute top-16 right-4 z-20 pointer-events-none float-up text-2xl font-black select-none"
-          style={{ color: '#b45309', textShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>
-          +🪙2
+        <div className="absolute top-16 right-4 z-20 pointer-events-none float-up font-black select-none"
+          style={{
+            fontSize: showCoin === 'lucky' ? '1.5rem' : '1.25rem',
+            color: showCoin === 'lucky' ? '#15803d' : '#b45309',
+            textShadow: '0 1px 4px rgba(0,0,0,0.2)',
+          }}>
+          {showCoin === 'lucky' ? '🍀 +3!' : '+🪙2'}
         </div>
       )}
+
+      {showMysteryBox && <MysteryBoxOverlay onClose={() => setShowMysteryBox(false)} />}
 
       {/* Progress bar + streak */}
       <div className="flex-shrink-0 flex items-center gap-3 bg-white rounded-2xl px-4 py-3 shadow border-2 border-gray-100">
@@ -147,7 +256,10 @@ export default function KidTracker() {
       {/* Task list */}
       <div className="flex-1 min-h-0 overflow-y-auto panel-scroll flex flex-col gap-3 pb-2">
         {pendingActivities.map((a, i) => (
-          <TaskCard key={a.id} activity={a} index={i} onTap={async () => { await completeTask(a.id); showReaction() }} />
+          <TaskCard key={a.id} activity={a} index={i} onTap={async () => {
+            const { lucky } = await completeTask(a.id)
+            showReaction(lucky)
+          }} />
         ))}
         {completedActivities.length > 0 && (
           <>

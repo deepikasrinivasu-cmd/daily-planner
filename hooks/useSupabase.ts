@@ -34,6 +34,34 @@ function today() {
   return new Date().toISOString().split('T')[0]
 }
 
+function getWeekStart(): string {
+  const d = new Date()
+  const day = d.getDay()
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1) // back to Monday
+  return new Date(d.getFullYear(), d.getMonth(), diff).toISOString().split('T')[0]
+}
+
+// ── Mystery box helpers (exported standalone) ─────────────────────────────────
+export async function checkMysteryBox(): Promise<boolean> {
+  const { data } = await supabase
+    .from('coin_ledger')
+    .select('id')
+    .eq('reason', 'mystery_box')
+    .gte('created_at', `${getWeekStart()}T00:00:00`)
+    .limit(1)
+  return !data || data.length === 0
+}
+
+export async function claimMysteryBox(): Promise<number> {
+  // Weighted random: small(1-3) 50%, medium(4-6) 35%, big(7-10) 15%
+  const roll = Math.random()
+  const amount = roll < 0.50 ? Math.floor(Math.random() * 3) + 1
+               : roll < 0.85 ? Math.floor(Math.random() * 3) + 4
+               :                Math.floor(Math.random() * 4) + 7
+  await supabase.from('coin_ledger').insert({ amount, reason: 'mystery_box' })
+  return amount
+}
+
 // Unique channel name per mount — avoids StrictMode double-subscribe collision
 function channelId(name: string) {
   return `${name}-${Math.random().toString(36).slice(2)}`
@@ -104,16 +132,22 @@ export function useKidTracker() {
     return () => { supabase.removeChannel(channel) }
   }, [loadData])
 
-  const completeTask = useCallback(async (activityId: string) => {
+  const completeTask = useCallback(async (activityId: string): Promise<{ lucky: boolean }> => {
     const date = today()
     await supabase
       .from('daily_tasks')
       .update({ completed: true, completed_at: new Date().toISOString() })
       .eq('activity_id', activityId)
       .eq('date', date)
-    // Award coins for this task
+    // Award regular coins
     await supabase.from('coin_ledger').insert({ amount: COINS_PER_TASK, reason: 'task_complete', activity_id: activityId })
+    // Lucky coin — 20% chance of +1 bonus
+    const lucky = Math.random() < 0.2
+    if (lucky) {
+      await supabase.from('coin_ledger').insert({ amount: 1, reason: 'lucky_coin', activity_id: activityId })
+    }
     await loadData()
+    return { lucky }
   }, [loadData])
 
   const uncompleteTask = useCallback(async (activityId: string) => {
