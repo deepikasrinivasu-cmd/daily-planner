@@ -29,7 +29,7 @@ type PinIntent = 'settings' | 'reset' | 'diamond'
 
 function AppContent() {
   const { percent, resetTasks } = useKidTracker()
-  const { giveDiamond } = useCoins()
+  const { totalCoins, diamonds, giveDiamond, reload: reloadCoins } = useCoins()
   const [tab, setTab] = useState<Tab>('missions')
   const [pinIntent, setPinIntent] = useState<PinIntent | null>(null)
   const [showAdmin, setShowAdmin] = useState(false)
@@ -43,7 +43,7 @@ function AppContent() {
       setResetDone(true)
       setTimeout(() => setResetDone(false), 2000)
     } else if (pinIntent === 'diamond') {
-      await giveDiamond()
+      await giveDiamond() // calls load() internally → props update immediately
     }
   }
 
@@ -96,7 +96,12 @@ function AppContent() {
                 </button>
               </div>
               <div className="flex-1 min-h-0">
-                <KidTracker onGiveDiamond={() => setPinIntent('diamond')} />
+                <KidTracker
+                  totalCoins={totalCoins}
+                  diamonds={diamonds}
+                  onGiveDiamond={() => setPinIntent('diamond')}
+                  onCoinsNeedRefresh={reloadCoins}
+                />
               </div>
             </div>
           )}

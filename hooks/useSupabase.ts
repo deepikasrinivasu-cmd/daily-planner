@@ -342,6 +342,10 @@ export function useQuickTasks() {
   const toggleTask = async (id: string, completed: boolean) => {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: !completed } : t))
     await supabase.from('quick_tasks').update({ completed: !completed }).eq('id', id)
+    if (!completed) {
+      // Marking as complete → award 1 coin
+      await supabase.from('coin_ledger').insert({ amount: 1, reason: 'quick_task' })
+    }
   }
   const deleteTask = async (id: string) => {
     setTasks(prev => prev.filter(t => t.id !== id))
@@ -412,6 +416,7 @@ export function useCoins() {
     const channel = supabase.channel(channelId('coins'))
     channel
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'coin_ledger' }, load)
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'coin_ledger' }, load)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'dog_state' }, load)
       .subscribe()
     return () => { supabase.removeChannel(channel) }
@@ -459,5 +464,5 @@ export function useCoins() {
 
   const diamonds = dogState?.diamonds ?? 0
 
-  return { totalCoins, diamonds, dogState, loading, spendCoins, markSecretSeen, giveDiamond, resetCoins, resetDiamonds }
+  return { totalCoins, diamonds, dogState, loading, spendCoins, markSecretSeen, giveDiamond, resetCoins, resetDiamonds, reload: load }
 }
