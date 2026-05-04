@@ -19,7 +19,7 @@ const KidTracker = dynamic_(() => import('./components/KidTracker'), { ssr: fals
 type Tab = 'missions' | 'rewards' | 'schedule' | 'groceries' | 'tasks'
 const TABS: { id: Tab; label: string; icon: string; bg: string; text: string }[] = [
   { id: 'missions',  label: 'Missions',  icon: '⭐', bg: '#FFD60A', text: '#000000' },
-  { id: 'rewards',   label: 'Buddy',     icon: '🐕', bg: '#FF6B6B', text: '#000000' },
+  { id: 'rewards',   label: 'Buddy Rewards', icon: '🏆', bg: '#FF6B6B', text: '#000000' },
   { id: 'tasks',     label: 'Tasks',     icon: '⚡', bg: '#A855F7', text: '#ffffff' },
   { id: 'schedule',  label: 'Schedule',  icon: '📅', bg: '#4ECDC4', text: '#000000' },
   { id: 'groceries', label: 'Groceries', icon: '🛒', bg: '#FF9F1C', text: '#000000' },
