@@ -239,12 +239,21 @@ export function useGroceries() {
 
   useEffect(() => {
     loadAll()
+    // Debounce: bulk deletes fire one realtime event per row — avoid stampede of re-fetches
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null
+    const debouncedLoad = () => {
+      if (debounceTimer) clearTimeout(debounceTimer)
+      debounceTimer = setTimeout(loadAll, 300)
+    }
     const channel = supabase.channel(channelId('groceries'))
     channel
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'stores' },        loadAll)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'grocery_items' }, loadAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'stores' },        debouncedLoad)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'grocery_items' }, debouncedLoad)
       .subscribe()
-    return () => { supabase.removeChannel(channel) }
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer)
+      supabase.removeChannel(channel)
+    }
   }, [loadAll])
 
   const addStore    = async (name: string, color: string) => { await supabase.from('stores').insert({ name, color }) }

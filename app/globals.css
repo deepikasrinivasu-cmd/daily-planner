@@ -135,6 +135,13 @@ html, body {
 }
 .new-badge { animation: new-badge-pulse 1s ease-in-out infinite; }
 
+@keyframes grocery-flash {
+  0%   { background-color: #fefce8; box-shadow: 0 0 0 3px #fde047; }
+  60%  { background-color: #fefce8; box-shadow: 0 0 0 3px #fde047; }
+  100% { background-color: transparent; box-shadow: none; }
+}
+.grocery-flash { animation: grocery-flash 1.8s ease-out forwards; }
+
 @keyframes dog-lick {
   0%,100% { transform: rotate(0deg) translateX(0); }
   20%     { transform: rotate(18deg) translateX(9px); }
