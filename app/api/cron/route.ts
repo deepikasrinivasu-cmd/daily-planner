@@ -16,14 +16,12 @@ const supabase = createClient(
 async function sendToAll(title: string, body: string) {
   const { data: subs } = await supabase.from('push_subscriptions').select('*')
   if (!subs || subs.length === 0) return
-
   await Promise.allSettled(
     subs.map((s) =>
       webpush.sendNotification(
         { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth_key } },
         JSON.stringify({ title, body, icon: '/icon' })
       ).catch(async (err) => {
-        // Remove expired/invalid subscriptions
         if (err.statusCode === 404 || err.statusCode === 410) {
           await supabase.from('push_subscriptions').delete().eq('endpoint', s.endpoint)
         }
@@ -33,29 +31,25 @@ async function sendToAll(title: string, body: string) {
 }
 
 export async function GET(req: NextRequest) {
-  // Protect the cron endpoint
   const secret = req.headers.get('x-cron-secret') ?? req.nextUrl.searchParams.get('secret')
   if (secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const now = new Date()
-  const hour = now.getUTCHours()
-  const dayOfWeek = now.getUTCDay() // 0=Sun, 1=Mon...
+  // All time logic in America/New_York (EST/EDT auto-handled)
+  const nyNow     = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }))
+  const hour      = nyNow.getHours()
+  const dayOfWeek = nyNow.getDay()           // 0=Sun … 6=Sat
+  const todayStr  = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
+  const tomorrowStr = (() => {
+    const d = new Date(nyNow); d.setDate(d.getDate() + 1)
+    return d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
+  })()
 
-  // Morning (8 AM UTC): always send a morning nudge, include events if any
-  if (hour === 8) {
-    const todayStr = now.toISOString().split('T')[0]
-    const tomorrow = new Date(now)
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    const tomorrowStr = tomorrow.toISOString().split('T')[0]
-
-    const { data: events } = await supabase
-      .from('family_events')
-      .select('*')
-      .in('date', [todayStr, tomorrowStr])
-      .order('date')
-      .order('time')
+  // Cron fires at 13:00 UTC = 8 AM EST / 9 AM EDT
+  if (hour === 8 || hour === 9) {
+    const { data: events } = await supabase.from('family_events').select('*')
+      .in('date', [todayStr, tomorrowStr]).order('date').order('time')
 
     if (events && events.length > 0) {
       const lines = events.map((e) => {
@@ -64,13 +58,12 @@ export async function GET(req: NextRequest) {
       })
       await sendToAll('📅 Family Schedule', lines.join('\n'))
     } else {
-      // Always send something in the morning so the notification fires reliably
       await sendToAll('🌅 Good morning, Family HQ!', "Time to check today's missions and plan the day!")
     }
   }
 
-  // Afternoon (5 PM UTC): funny grocery reminder Mon/Wed/Fri
-  if (hour === 17 && (dayOfWeek === 1 || dayOfWeek === 3 || dayOfWeek === 5)) {
+  // Cron fires at 21:00 UTC = 4 PM EST / 5 PM EDT  Mon/Wed/Fri
+  if ((hour === 16 || hour === 17) && (dayOfWeek === 1 || dayOfWeek === 3 || dayOfWeek === 5)) {
     const groceryQuips = [
       "🛒 The fridge is judging you. It's empty and disappointed.",
       "🥦 Quick! Before someone eats the last of everything again!",
@@ -87,9 +80,9 @@ export async function GET(req: NextRequest) {
       "🛒 The grocery list is sad and lonely. Give it some love!",
       "🐶 Even Shizu the space dog needs snacks. Stock up!",
     ]
-    const idx = new Date().getDate() % groceryQuips.length
+    const idx = nyNow.getDate() % groceryQuips.length
     await sendToAll('🛒 Grocery Time!', groceryQuips[idx])
   }
 
-  return NextResponse.json({ ok: true, hour, dayOfWeek })
+  return NextResponse.json({ ok: true, hour, dayOfWeek, todayStr })
 }

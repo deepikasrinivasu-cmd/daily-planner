@@ -64,9 +64,9 @@ export type Database = {
         Relationships: []
       }
       dog_state: {
-        Row: { id: number; last_action: string | null; last_action_at: string | null; secrets_seen: number[]; diamonds: number }
-        Insert: { id?: number; last_action?: string | null; last_action_at?: string | null; secrets_seen?: number[]; diamonds?: number }
-        Update: { id?: number; last_action?: string | null; last_action_at?: string | null; secrets_seen?: number[]; diamonds?: number }
+        Row: { id: number; last_action: string | null; last_action_at: string | null; secrets_seen: number[]; diamonds: number; pin: string }
+        Insert: { id?: number; last_action?: string | null; last_action_at?: string | null; secrets_seen?: number[]; diamonds?: number; pin?: string }
+        Update: { id?: number; last_action?: string | null; last_action_at?: string | null; secrets_seen?: number[]; diamonds?: number; pin?: string }
         Relationships: []
       }
     }

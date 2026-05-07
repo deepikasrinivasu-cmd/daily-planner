@@ -2,7 +2,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useCoins } from '@/hooks/useSupabase'
 import { getDogTier, getNextTier } from '@/lib/dogTiers'
-import { SPACE_SECRETS, SECRET_MILESTONES } from '@/lib/spaceSecrets'
 
 type DogAnim = 'idle' | 'wag' | 'spin' | 'launch'
 
@@ -13,7 +12,7 @@ const DOG_ACTIONS = [
 ]
 
 export default function ShizuPanel() {
-  const { totalCoins, dogState, loading, spendCoins, markSecretSeen } = useCoins()
+  const { totalCoins, dogState, loading, spendCoins } = useCoins()
   const [dogAnim, setDogAnim]     = useState<DogAnim>('idle')
   const [speech, setSpeech]       = useState<string | null>(null)
   const [showCoinPop, setShowCoinPop] = useState(false)
@@ -23,12 +22,6 @@ export default function ShizuPanel() {
 
   const tier     = getDogTier(totalCoins)
   const nextTier = getNextTier(totalCoins)
-  const seenSet  = new Set(dogState?.secrets_seen ?? [])
-
-  // Which secrets are unlocked (coins threshold met)
-  const unlockedIndexes = SPACE_SECRETS.map((_, i) => i).filter(i => totalCoins >= SECRET_MILESTONES[i])
-  const hasNewSecret = unlockedIndexes.some(i => !seenSet.has(i))
-
   // Coin pop animation when balance increases
   useEffect(() => {
     if (totalCoins > prevCoins.current) {
@@ -38,10 +31,7 @@ export default function ShizuPanel() {
     prevCoins.current = totalCoins
   }, [totalCoins])
 
-  // Default speech: new secret hint, or tier description
-  const defaultSpeech = hasNewSecret
-    ? '🌟 I discovered something! Check below!'
-    : tier.desc
+  const defaultSpeech = tier.desc
 
   const say = useCallback((msg: string, durationMs = 2500) => {
     if (speechTimer.current) clearTimeout(speechTimer.current)
@@ -72,18 +62,7 @@ export default function ShizuPanel() {
       say(action.speech)
     } else if (action.id === 'dog_bath') {
       animate('launch', 1600)
-      // Reveal next unseen unlocked secret
-      const nextUnseen = unlockedIndexes.find(i => !seenSet.has(i))
-      if (nextUnseen !== undefined) {
-        setTimeout(() => {
-          markSecretSeen(nextUnseen)
-          say(`🔭 WOOF! "${SPACE_SECRETS[nextUnseen].fact}"`, 4000)
-        }, 900)
-      } else if (unlockedIndexes.length > 0) {
-        setTimeout(() => say('🌌 I already know ALL the secrets of the cosmos!'), 900)
-      } else {
-        setTimeout(() => say('🌍 Earn more coins to unlock space secrets!'), 900)
-      }
+      setTimeout(() => say('🚀 To infinity and beyond!!', 2500), 900)
     }
   }
 
@@ -169,58 +148,6 @@ export default function ShizuPanel() {
         })}
       </div>
 
-      {/* ── Space secrets ── */}
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between px-1">
-          <div className="text-sm font-black text-gray-700 uppercase tracking-wider">🔭 Space Secrets</div>
-          <div className="text-xs font-bold text-gray-400">{unlockedIndexes.length}/{SPACE_SECRETS.length} discovered</div>
-        </div>
-
-        {unlockedIndexes.length === 0 && (
-          <div className="text-center py-6 rounded-2xl bg-white border-2 border-dashed border-gray-200 text-sm text-gray-400 font-semibold">
-            Earn {SECRET_MILESTONES[0]} coins to discover your first space secret! 🌌
-          </div>
-        )}
-
-        {/* Unlocked secrets (newest first) */}
-        {[...unlockedIndexes].reverse().map(i => {
-          const secret = SPACE_SECRETS[i]
-          const isNew = !seenSet.has(i)
-          return (
-            <button key={i} onClick={() => markSecretSeen(i)}
-              className={`flex items-start gap-3 px-4 py-3 rounded-2xl text-left border-2 shadow-sm transition-all
-                ${isNew ? 'bg-yellow-50 border-yellow-300' : 'bg-white border-gray-100'}`}>
-              <span className="text-3xl flex-shrink-0">{secret.emoji}</span>
-              <div className="flex-1">
-                {isNew && (
-                  <div className="new-badge inline-block text-xs font-black text-yellow-700 bg-yellow-200 px-2 py-0.5 rounded-full mb-1">
-                    NEW! ✨
-                  </div>
-                )}
-                <p className={`text-sm font-bold leading-snug ${isNew ? 'text-gray-900' : 'text-gray-600'}`}>
-                  {secret.fact}
-                </p>
-              </div>
-            </button>
-          )
-        })}
-
-        {/* Next secret teaser */}
-        {unlockedIndexes.length < SPACE_SECRETS.length && (
-          <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-200">
-            <span className="text-2xl opacity-30">🔒</span>
-            <p className="text-sm font-bold text-gray-400">
-              {SECRET_MILESTONES[unlockedIndexes.length] - totalCoins} more coins to next discovery…
-            </p>
-          </div>
-        )}
-
-        {unlockedIndexes.length === SPACE_SECRETS.length && (
-          <div className="text-center py-3 rounded-2xl bg-yellow-50 border-2 border-yellow-300">
-            <p className="text-sm font-black text-yellow-700">🏆 Shizu knows ALL the secrets of the cosmos!</p>
-          </div>
-        )}
-      </div>
     </div>
   )
 }

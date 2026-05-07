@@ -18,32 +18,33 @@ const KidTracker = dynamic_(() => import('./components/KidTracker'), { ssr: fals
 
 type Tab = 'missions' | 'rewards' | 'schedule' | 'groceries' | 'tasks'
 const TABS: { id: Tab; label: string; icon: string; bg: string; text: string }[] = [
-  { id: 'missions',  label: 'Missions',  icon: '⭐', bg: '#FFD60A', text: '#000000' },
+  { id: 'missions',  label: 'Missions',      icon: '⭐', bg: '#FFD60A', text: '#000000' },
   { id: 'rewards',   label: 'Buddy Rewards', icon: '🏆', bg: '#FF6B6B', text: '#000000' },
-  { id: 'tasks',     label: 'Tasks',     icon: '⚡', bg: '#A855F7', text: '#ffffff' },
-  { id: 'schedule',  label: 'Schedule',  icon: '📅', bg: '#4ECDC4', text: '#000000' },
-  { id: 'groceries', label: 'Groceries', icon: '🛒', bg: '#FF9F1C', text: '#000000' },
+  { id: 'tasks',     label: 'Tasks',         icon: '⚡', bg: '#A855F7', text: '#ffffff' },
+  { id: 'schedule',  label: 'Schedule',      icon: '📅', bg: '#4ECDC4', text: '#000000' },
+  { id: 'groceries', label: 'Groceries',     icon: '🛒', bg: '#FF9F1C', text: '#000000' },
 ]
 
 type PinIntent = 'settings' | 'reset' | 'diamond'
 
 function AppContent() {
   const { percent, resetTasks } = useKidTracker()
-  const { totalCoins, diamonds, giveDiamond, reload: reloadCoins } = useCoins()
-  const [tab, setTab] = useState<Tab>('missions')
+  const { totalCoins, diamonds, pin, dogState, markSecretSeen, giveDiamond, reload: reloadCoins } = useCoins()
+  const [tab,       setTab]       = useState<Tab>('missions')
   const [pinIntent, setPinIntent] = useState<PinIntent | null>(null)
   const [showAdmin, setShowAdmin] = useState(false)
   const [resetDone, setResetDone] = useState(false)
 
   const handlePinSuccess = async () => {
     setPinIntent(null)
-    if (pinIntent === 'settings') setShowAdmin(true)
-    else if (pinIntent === 'reset') {
+    if (pinIntent === 'settings') {
+      setShowAdmin(true)
+    } else if (pinIntent === 'reset') {
       await resetTasks()
       setResetDone(true)
       setTimeout(() => setResetDone(false), 2000)
     } else if (pinIntent === 'diamond') {
-      await giveDiamond() // calls load() internally → props update immediately
+      await giveDiamond()
     }
   }
 
@@ -51,12 +52,10 @@ function AppContent() {
     <>
       <div className="w-screen h-screen flex flex-col overflow-hidden" style={{ background: '#F0F4F8' }}>
 
-        {/* ── Top header ── */}
+        {/* Header */}
         <div className="flex-shrink-0 flex items-center px-4 py-3 gap-3" style={{ background: '#1E1B4B' }}>
           <div className="text-lg font-black text-white whitespace-nowrap">🏠 Family HQ</div>
-          <div className="flex-1 flex justify-center">
-            <Clock />
-          </div>
+          <div className="flex-1 flex justify-center"><Clock /></div>
           <button onClick={() => setPinIntent('settings')}
             className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 border-2 border-white/30 hover:border-white/60 transition-colors"
             style={{ background: 'rgba(255,255,255,0.15)' }}>
@@ -64,7 +63,7 @@ function AppContent() {
           </button>
         </div>
 
-        {/* ── Tab bar — directly below header, always visible ── */}
+        {/* Tab bar */}
         <div className="flex-shrink-0 flex gap-1.5 px-3 py-1.5" style={{ background: '#1E1B4B' }}>
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
@@ -79,7 +78,7 @@ function AppContent() {
           ))}
         </div>
 
-        {/* ── Page content ── */}
+        {/* Content */}
         <div className="flex-1 min-h-0 overflow-hidden">
 
           {tab === 'missions' && (
@@ -87,7 +86,7 @@ function AppContent() {
               <div className="flex-shrink-0 flex items-center gap-3">
                 <div className="flex-1">
                   <div className="text-2xl font-black text-gray-900">Mission Control 🚀</div>
-                  <div className="text-gray-500 text-sm font-semibold">Tap the green button to complete!</div>
+                  <div className="text-gray-500 text-sm font-semibold">Tap to complete missions!</div>
                 </div>
                 <button onClick={() => setPinIntent('reset')}
                   className={`flex-shrink-0 px-4 py-2 rounded-xl font-black text-sm border-2 transition-all
@@ -99,8 +98,11 @@ function AppContent() {
                 <KidTracker
                   totalCoins={totalCoins}
                   diamonds={diamonds}
+                  dogState={dogState}
+                  isActive={tab === 'missions'}
                   onGiveDiamond={() => setPinIntent('diamond')}
                   onCoinsNeedRefresh={reloadCoins}
+                  markSecretSeen={markSecretSeen}
                 />
               </div>
             </div>
@@ -133,18 +135,21 @@ function AppContent() {
               <GroceryPanel />
             </div>
           )}
-
         </div>
       </div>
 
-      {pinIntent && <PinModal onSuccess={handlePinSuccess} onClose={() => setPinIntent(null)} />}
-      {showAdmin && <AdminModal onClose={() => setShowAdmin(false)} />}
+      {pinIntent && (
+        <PinModal
+          onSuccess={handlePinSuccess}
+          onClose={() => setPinIntent(null)}
+          passcode={pin}
+        />
+      )}
+      {showAdmin && <AdminModal onClose={() => setShowAdmin(false)} pin={pin} />}
       <NotificationSetup />
       <canvas id="confetti-canvas" />
     </>
   )
 }
 
-export default function Page() {
-  return <AppContent />
-}
+export default function Page() { return <AppContent /> }
